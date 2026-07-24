@@ -46,6 +46,14 @@ export default function PlayerProfile() {
   }
 
   const { skills = {}, careerTimeline = [], socials = {}, emergencyContact = {} } = profile;
+  const isRated = (skills.scoutRatingsCount || 0) > 0;
+  const displayOverall = isRated ? (skills.aiScore || skills.scoutScore || 0) : 0;
+  const displaySpeed = isRated ? (skills.speed || 0) : 0;
+  const displayPassing = isRated ? (skills.passing || 0) : 0;
+  const displayDribbling = isRated ? (skills.dribbling || 0) : 0;
+  const displayShooting = isRated ? (skills.finishing || skills.shooting || 0) : 0;
+  const displayDefending = isRated ? (skills.defending || 0) : 0;
+  const displayPhysical = isRated ? (skills.physical || 0) : 0;
 
   return (
     <DashboardLayout>
@@ -61,8 +69,8 @@ export default function PlayerProfile() {
                 {/* FUT Card Header */}
                 <div className="flex justify-between items-start z-10">
                   <div className="flex flex-col items-center">
-                    <span className="text-4xl font-black text-yellow-400 leading-none">{skills.aiScore || 60}</span>
-                    <span className="text-xs font-bold text-zinc-400 uppercase tracking-widest mt-1">{profile.preferredPosition || "FW"}</span>
+                    <span className="text-4xl font-black text-yellow-400 leading-none">{displayOverall}</span>
+                    <span className="text-xs font-bold text-zinc-400 uppercase tracking-widest mt-1">{profile.preferredPosition || "ST"}</span>
                   </div>
                   <Shield className="w-8 h-8 text-yellow-400 fill-yellow-400/25" />
                 </div>
@@ -89,12 +97,12 @@ export default function PlayerProfile() {
                 {/* FUT Card Rating Matrix */}
                 <div className="grid grid-cols-3 gap-y-2 border-t border-zinc-800/80 pt-4 z-10">
                   {[
-                    { label: "SPD", value: skills.speed || 60 },
-                    { label: "PAS", value: skills.passing || 60 },
-                    { label: "DRI", value: skills.dribbling || 60 },
-                    { label: "SHO", value: skills.finishing || 60 },
-                    { label: "DEF", value: skills.defending || 60 },
-                    { label: "VIS", value: skills.vision || 60 },
+                    { label: "SPD", value: displaySpeed },
+                    { label: "PAS", value: displayPassing },
+                    { label: "DRI", value: displayDribbling },
+                    { label: "SHO", value: displayShooting },
+                    { label: "DEF", value: displayDefending },
+                    { label: "PHY", value: displayPhysical },
                   ].map((attr) => (
                     <div key={attr.label} className="text-center">
                       <span className="block text-[8px] font-bold text-zinc-500 tracking-wider uppercase">{attr.label}</span>
@@ -152,7 +160,7 @@ export default function PlayerProfile() {
                 <MapPin className="w-4 h-4" /> {profile.city || profile.district || 'City'}, {profile.state || 'State'}
               </div>
               <div className="flex items-center gap-1">
-                <TrendingUp className="w-4 h-4 text-yellow-400" /> Potential Rating: {skills.potential || 70}
+                <TrendingUp className="w-4 h-4 text-yellow-400" /> Potential Rating: {isRated ? (skills.potential || 0) : 0}
               </div>
             </div>
           </div>

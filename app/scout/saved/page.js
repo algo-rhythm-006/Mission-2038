@@ -4,12 +4,14 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { api } from "@/lib/api";
 import DashboardLayout from "@/components/DashboardLayout";
+import PlayerInspectModal from "@/components/PlayerInspectModal";
 import { Star, MessageSquare, ShieldCheck, MapPin, Trash2, Calendar } from "lucide-react";
 
 export default function ScoutSavedPlayers() {
   const router = useRouter();
   const [players, setPlayers] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [inspectingPlayer, setInspectingPlayer] = useState(null);
 
   useEffect(() => {
     loadSavedPlayers();
@@ -40,6 +42,9 @@ export default function ScoutSavedPlayers() {
   const handleUnsavePlayer = async (rawId) => {
     try {
       await api.post("/dashboard/scout/save", { playerId: rawId });
+      if (inspectingPlayer && (inspectingPlayer._id === rawId || inspectingPlayer.user === rawId || inspectingPlayer.user?._id === rawId)) {
+        setInspectingPlayer(null);
+      }
       loadSavedPlayers();
     } catch (e) {
       console.error(e);
@@ -82,21 +87,24 @@ export default function ScoutSavedPlayers() {
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
             {players.map((p) => {
-              const uId = p.user?._id || p.user;
+              const uId = p.user?._id || p.user || p._id;
               return (
-                <div key={p._id} className="bg-zinc-900/40 border border-zinc-800 rounded-2xl p-6 flex flex-col justify-between relative overflow-hidden group hover:border-yellow-400/50 transition-all">
-                  <div>
+                <div key={p._id} className="bg-zinc-900/40 border border-zinc-800 hover:border-yellow-400/60 rounded-2xl p-6 flex flex-col justify-between relative overflow-hidden group transition-all">
+                  {/* Clickable Header & Details */}
+                  <div className="cursor-pointer" onClick={() => setInspectingPlayer(p)}>
                     <div className="flex justify-between items-start mb-4">
-                      <div className="w-14 h-14 rounded-full overflow-hidden border border-zinc-700 bg-zinc-950 shrink-0">
+                      <div className="w-14 h-14 rounded-full overflow-hidden border border-zinc-700 bg-zinc-950 shrink-0 group-hover:border-yellow-400 transition-all">
                         <img src={p.profilePhoto || "https://images.unsplash.com/photo-1508098682722-e99c43a406b2?w=150"} alt="Player" className="w-full h-full object-cover" />
                       </div>
                       <div className="bg-zinc-950 px-3 py-1.5 rounded-lg border border-zinc-850 text-center shrink-0">
-                        <span className="block text-[8px] uppercase font-black text-zinc-500">AI Score</span>
-                        <span className="text-sm font-black text-yellow-400">{p.skills?.aiScore || 60}</span>
+                        <span className="block text-[8px] uppercase font-black text-zinc-500">Score</span>
+                        <span className="text-sm font-black text-yellow-400">
+                          {(p.skills?.scoutRatingsCount || 0) > 0 ? (p.skills?.aiScore || p.skills?.scoutScore || 0) : 0}
+                        </span>
                       </div>
                     </div>
 
-                    <h4 className="text-white font-bold text-base truncate flex items-center gap-1">
+                    <h4 className="text-white font-bold text-base truncate flex items-center gap-1 group-hover:text-yellow-400 transition-colors">
                       {p.name}
                       {p.verifiedBadge && <ShieldCheck className="w-4 h-4 text-blue-400 shrink-0" />}
                     </h4>
@@ -120,10 +128,10 @@ export default function ScoutSavedPlayers() {
                         <MessageSquare className="w-3.5 h-3.5" /> Chat
                       </button>
                       <button
-                        onClick={() => router.push("/scout/trials")}
-                        className="flex-1 bg-gradient-to-r from-yellow-400 to-amber-500 text-black font-black uppercase tracking-wider py-2.5 rounded-xl text-[10px] transition-all flex items-center justify-center gap-1"
+                        onClick={() => setInspectingPlayer(p)}
+                        className="flex-1 bg-gradient-to-r from-yellow-400 to-amber-500 text-black font-black uppercase tracking-wider py-2.5 rounded-xl text-[10px] transition-all flex items-center justify-center gap-1 hover:scale-105"
                       >
-                        <Calendar className="w-3.5 h-3.5" /> Invite
+                        Inspect Profile
                       </button>
                     </div>
 
@@ -138,6 +146,23 @@ export default function ScoutSavedPlayers() {
               );
             })}
           </div>
+        )}
+
+        {/* FULL PLAYER CARD & DOSSIER INSPECT MODAL */}
+        {inspectingPlayer && (
+          <PlayerInspectModal
+            player={inspectingPlayer}
+            onClose={() => setInspectingPlayer(null)}
+            onSaveToggle={() => handleUnsavePlayer(inspectingPlayer.user?._id || inspectingPlayer.user || inspectingPlayer._id)}
+            isSaved={true}
+            onStartChat={inspectingPlayer.user?._id || inspectingPlayer.user ? () => handleStartChat(inspectingPlayer.user?._id || inspectingPlayer.user) : null}
+            onScheduleTrial={async (trialData) => {
+              await api.post("/dashboard/scout/trial", {
+                playerId: inspectingPlayer.user?._id || inspectingPlayer.user || inspectingPlayer._id,
+                ...trialData
+              });
+            }}
+          />
         )}
       </div>
     </DashboardLayout>

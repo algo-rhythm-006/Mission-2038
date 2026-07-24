@@ -3,12 +3,24 @@
 import { useState, useEffect } from "react";
 import { api } from "@/lib/api";
 import DashboardLayout from "@/components/DashboardLayout";
-import { ShieldCheck, UserCheck, ShieldAlert, BarChart2, Video } from "lucide-react";
+import { ShieldCheck, UserCheck, ShieldAlert, BarChart2, Video, Trash2 } from "lucide-react";
 
 export default function AdminDashboard() {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+
+  const handleDeleteVideo = async (videoId) => {
+    try {
+      await api.delete(`/videos/${videoId}`);
+      setData(prev => prev ? {
+        ...prev,
+        recentVideos: (prev.recentVideos || []).filter(v => v._id !== videoId)
+      } : prev);
+    } catch (err) {
+      setError("Failed to delete video: " + err.message);
+    }
+  };
 
   useEffect(() => {
     loadAdminStats();
@@ -172,13 +184,22 @@ export default function AdminDashboard() {
                     <h4 className="text-white font-bold text-xs">{v.title}</h4>
                     <p className="text-[10px] text-zinc-400">Player: {v.playerName} | Drill: {v.drillType}</p>
                   </div>
-                  <span className={`text-[8px] font-black uppercase px-2 py-0.5 rounded border shrink-0 ${
-                    v.isAnalyzed 
-                      ? "bg-green-400/10 text-green-400 border-green-500/20" 
-                      : "bg-yellow-400/10 text-yellow-400 border-yellow-400/20"
-                  }`}>
-                    {v.isAnalyzed ? "AI Analyzed" : "Pending AI"}
-                  </span>
+                  <div className="flex items-center gap-3 shrink-0">
+                    <span className={`text-[8px] font-black uppercase px-2 py-0.5 rounded border ${
+                      v.isAnalyzed 
+                        ? "bg-green-400/10 text-green-400 border-green-500/20" 
+                        : "bg-yellow-400/10 text-yellow-400 border-yellow-400/20"
+                    }`}>
+                      {v.isAnalyzed ? "AI Analyzed" : "Pending AI"}
+                    </span>
+                    <button
+                      onClick={() => handleDeleteVideo(v._id)}
+                      title="Delete Video"
+                      className="p-1.5 rounded-lg bg-red-950/40 hover:bg-red-600 border border-red-800/40 hover:border-red-500 text-red-400 hover:text-white transition-all"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
                 </div>
               ))}
             </div>

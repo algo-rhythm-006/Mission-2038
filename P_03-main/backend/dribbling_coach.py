@@ -2,7 +2,11 @@ import cv2
 import mediapipe as mp
 import numpy as np
 from ultralytics import YOLO
-from google import genai
+try:
+    from google import genai
+except ImportError:
+    genai = None
+
 import os
 from dotenv import load_dotenv
 
@@ -11,17 +15,22 @@ load_dotenv()
 API_KEY = os.getenv("GEMINI_API_KEY")
 CONTROL_THRESHOLD_PX = 80          
 
-try:
-    client = genai.Client(api_key=API_KEY)
-    print("[✓] Gemini AI Connected (Dribbling)")
-except Exception as e:
-    print(f"[X] Gemini Error: {e}")
-    client = None
+client = None
+if API_KEY and genai:
+    try:
+        client = genai.Client(api_key=API_KEY)
+        print("[OK] Gemini AI Connected (Dribbling)")
+    except Exception as e:
+        print(f"[X] Gemini Error: {e}")
 
 print("Loading Models...")
 yolo_model = YOLO('yolov8n.pt') 
-mp_pose = mp.solutions.pose
-pose = mp_pose.Pose(min_detection_confidence=0.5, min_tracking_confidence=0.5)
+
+from pose_helper import SafePoseDetector
+
+pose_detector = SafePoseDetector()
+mp_pose = pose_detector.mp_pose
+pose = pose_detector
 
 def analyze_dribbling(video_path, show_visuals=False):
     print(f"--- STARTING DRIBBLING AI COACH FOR {video_path} ---")
@@ -105,7 +114,10 @@ def analyze_dribbling(video_path, show_visuals=False):
 
     cap.release()
 
-    control_rating = (control_frames * 100 / total_frames) if total_frames > 0 else 0
+    if total_frames > 0:
+        control_rating = (control_frames * 100) / total_frames
+    else:
+        control_rating = 0.0
 
     stats = {
         "touches": touches,

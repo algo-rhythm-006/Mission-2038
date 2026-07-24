@@ -3,7 +3,11 @@ import mediapipe as mp
 import numpy as np
 import time
 from ultralytics import YOLO
-from google import genai
+try:
+    from google import genai
+except ImportError:
+    genai = None
+
 import os
 from dotenv import load_dotenv
 
@@ -11,15 +15,19 @@ load_dotenv()
 
 API_KEY = os.getenv("GEMINI_API_KEY")
 
-try:
-    client = genai.Client(api_key=API_KEY)
-    print("[✓] Gemini AI Connected (Goalkeeper)")
-except Exception as e:
-    print(f"[X] Gemini Error: {e}")
-    client = None
+client = None
+if API_KEY and genai:
+    try:
+        client = genai.Client(api_key=API_KEY)
+        print("[OK] Gemini AI Connected (Goalkeeper)")
+    except Exception as e:
+        print(f"[X] Gemini Error: {e}")
 
-mp_pose = mp.solutions.pose
-pose = mp_pose.Pose(min_detection_confidence=0.5, min_tracking_confidence=0.5)
+from pose_helper import SafePoseDetector
+
+pose_detector = SafePoseDetector()
+mp_pose = pose_detector.mp_pose
+pose = pose_detector
 
 yolo_model = YOLO('yolov8n.pt') 
 
@@ -91,7 +99,8 @@ def analyze_goalkeeper(video_path, show_visuals=False):
             keeper_bbox = get_body_bbox(pose_results.pose_landmarks.landmark, w, h)
             if show_visuals:
                 cv2.rectangle(frame, (keeper_bbox[0], keeper_bbox[1]), (keeper_bbox[2], keeper_bbox[3]), (255, 0, 0), 2)
-                mp.solutions.drawing_utils.draw_landmarks(frame, pose_results.pose_landmarks, mp_pose.POSE_CONNECTIONS)
+                if hasattr(mp, 'solutions') and hasattr(mp.solutions, 'drawing_utils'):
+                    mp.solutions.drawing_utils.draw_landmarks(frame, pose_results.pose_landmarks, mp_pose.POSE_CONNECTIONS)
 
         if ball_pos:
             ball_in_frame_frames += 1

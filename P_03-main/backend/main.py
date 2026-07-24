@@ -53,7 +53,10 @@ def sse_generator(coach_generator, temp_path):
                 yield f"data: {payload}\n\n"
     finally:
         if os.path.exists(temp_path):
-            os.remove(temp_path)
+            try:
+                os.remove(temp_path)
+            except Exception as e:
+                print(f"[Warning] Could not delete temp file {temp_path}: {e}")
 
 @app.post("/analyze/shooting")
 async def process_shooting(file: UploadFile = File(...), show_visuals: bool = Form(False)):

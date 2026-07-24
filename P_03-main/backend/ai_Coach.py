@@ -2,7 +2,11 @@ import cv2
 import mediapipe as mp
 import numpy as np
 from collections import deque
-from google import genai
+try:
+    from google import genai
+except ImportError:
+    genai = None
+
 import os
 from dotenv import load_dotenv
 
@@ -13,16 +17,20 @@ API_KEY = os.getenv("GEMINI_API_KEY")
 FRAME_RATE = 30 # Assumed for timestamp calculation
 
 # 1. Connect to Gemini (The Brain)
-try:
-    client = genai.Client(api_key=API_KEY)
-    print("[✓] Gemini AI Connected (Shooting Coach)")
-except Exception as e:
-    print(f"[X] Gemini Error: {e}")
-    client = None
+client = None
+if API_KEY and genai:
+    try:
+        client = genai.Client(api_key=API_KEY)
+        print("[OK] Gemini AI Connected (Shooting Coach)")
+    except Exception as e:
+        print(f"[X] Gemini Error: {e}")
 
-# Initialize MediaPipe
-mp_pose = mp.solutions.pose
-pose = mp_pose.Pose(min_detection_confidence=0.5, min_tracking_confidence=0.5)
+# Initialize MediaPipe Pose Detector
+from pose_helper import SafePoseDetector
+
+pose_detector = SafePoseDetector()
+mp_pose = pose_detector.mp_pose
+pose = pose_detector
 
 def calculate_angle(a, b, c):
     a = np.array(a) 
@@ -131,7 +139,8 @@ def analyze_shooting(video_path, show_visuals=False):
                 cooldown_counter -= 1
                 
             if show_visuals:
-                mp.solutions.drawing_utils.draw_landmarks(image, results.pose_landmarks, mp_pose.POSE_CONNECTIONS)
+                if hasattr(mp, 'solutions') and hasattr(mp.solutions, 'drawing_utils'):
+                    mp.solutions.drawing_utils.draw_landmarks(image, results.pose_landmarks, mp_pose.POSE_CONNECTIONS)
 
         if show_visuals:
             yield {"type": "frame", "image": image}

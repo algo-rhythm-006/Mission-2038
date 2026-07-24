@@ -218,6 +218,47 @@ const TrialSchema = new Schema({
   notes: { type: String, default: '' }
 }, { timestamps: true, strict: false });
 
+// 14. SCOUT RATING SCHEMA
+const ScoutRatingSchema = new Schema({
+  player: { type: Schema.Types.ObjectId, ref: 'User', required: true },
+  scout: { type: Schema.Types.ObjectId, ref: 'User', required: true },
+  trial: { type: Schema.Types.ObjectId, ref: 'Trial' },
+  speed: { type: Number, min: 0, max: 99, default: 0 },
+  passing: { type: Number, min: 0, max: 99, default: 0 },
+  dribbling: { type: Number, min: 0, max: 99, default: 0 },
+  shooting: { type: Number, min: 0, max: 99, default: 0 },
+  defending: { type: Number, min: 0, max: 99, default: 0 },
+  physical: { type: Number, min: 0, max: 99, default: 0 },
+  scoutScore: { type: Number, default: 0 },
+  recommendation: { type: String, enum: ['SIGN_IMMEDIATELY', 'SHORTLIST_FOR_TRIAL', 'MONITOR_DEVELOPMENT', 'PASS'], default: 'SHORTLIST_FOR_TRIAL' },
+  scoutingVideo: { type: String, default: '' }
+}, { timestamps: true });
+
+// 15. SCOUT REPORT SCHEMA
+const ScoutReportSchema = new Schema({
+  scout: { type: Schema.Types.ObjectId, ref: 'User', required: true },
+  player: { type: Schema.Types.ObjectId, ref: 'User', required: true },
+  playerName: { type: String, required: true },
+  matchEvent: { type: String, default: 'Scouting Trial Match' },
+  date: { type: Date, default: Date.now },
+  location: { type: String, default: 'Grassroots Pitch' },
+  tacticalRole: { type: String, default: 'ST' },
+  overallScore: { type: Number, default: 75 },
+  recommendation: { type: String, enum: ['SIGN_IMMEDIATELY', 'SHORTLIST_FOR_TRIAL', 'MONITOR_DEVELOPMENT', 'PASS'], default: 'SHORTLIST_FOR_TRIAL' },
+  strengths: { type: String, default: '' },
+  weaknesses: { type: String, default: '' },
+  verdict: { type: String, default: '' },
+  scoutingVideo: { type: String, default: '' },
+  scores: {
+    speed: { type: Number, default: 0 },
+    passing: { type: Number, default: 0 },
+    dribbling: { type: Number, default: 0 },
+    shooting: { type: Number, default: 0 },
+    defending: { type: Number, default: 0 },
+    physical: { type: Number, default: 0 }
+  }
+}, { timestamps: true });
+
 // Registering models
 const User = mongoose.models.User || mongoose.model('User', UserSchema);
 const Profile = mongoose.models.Profile || mongoose.model('Profile', ProfileSchema);
@@ -232,6 +273,8 @@ const Notification = mongoose.models.Notification || mongoose.model('Notificatio
 const Tournament = mongoose.models.Tournament || mongoose.model('Tournament', TournamentSchema);
 const Application = mongoose.models.Application || mongoose.model('Application', ApplicationSchema);
 const Trial = mongoose.models.Trial || mongoose.model('Trial', TrialSchema);
+const ScoutRating = mongoose.models.ScoutRating || mongoose.model('ScoutRating', ScoutRatingSchema);
+const ScoutReport = mongoose.models.ScoutReport || mongoose.model('ScoutReport', ScoutReportSchema);
 
 module.exports = {
   User,
@@ -246,5 +289,7 @@ module.exports = {
   Notification,
   Tournament,
   Application,
-  Trial
+  Trial,
+  ScoutRating,
+  ScoutReport
 };

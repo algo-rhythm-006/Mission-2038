@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const { Trial, User, Profile, Notification } = require('../models');
+const { Trial, User, Profile, Notification, ScoutRating } = require('../models');
 const authenticateToken = require('../../middleware/auth');
 
 // 1. GET ALL PLAYERS FOR INVITATION SELECT
@@ -103,6 +103,15 @@ router.get('/', authenticateToken, async (req, res) => {
       profileMap[p.user.toString()] = p;
     });
 
+    // Fetch all scout ratings submitted by this scout for trials
+    const ratings = await ScoutRating.find({ scout: userId, trial: { $ne: null } });
+    const trialRatingMap = {};
+    ratings.forEach(r => {
+      if (r.trial && r.player) {
+        trialRatingMap[`${r.trial.toString()}_${r.player.toString()}`] = r;
+      }
+    });
+
     const enrichedTrials = trials.map(t => {
       const tObj = typeof t.toObject === 'function' ? t.toObject() : t;
       const scoutProfile = profileMap[t.scout?._id?.toString() || t.scout?.toString()];
@@ -120,12 +129,16 @@ router.get('/', authenticateToken, async (req, res) => {
       tObj.applicants = (tObj.applicants || []).map(app => {
         const pId = app.player?._id?.toString() || app.player?.toString();
         const pProfile = profileMap[pId];
+        const rating = trialRatingMap[`${tObj._id}_${pId}`];
+
         return {
           ...app,
           playerName: pProfile?.name || 'Player',
           preferredPosition: pProfile?.preferredPosition || 'ST',
           ageCategory: pProfile?.ageCategory || 'Senior',
-          profilePhoto: pProfile?.profilePhoto || ''
+          profilePhoto: pProfile?.profilePhoto || '',
+          isRated: !!rating,
+          scoutScore: rating ? rating.scoutScore : null
         };
       });
 
@@ -356,6 +369,20 @@ router.post('/:id/decline', authenticateToken, async (req, res) => {
   } catch (err) {
     console.error('Error declining trial:', err);
     res.status(500).json({ error: 'Failed to decline trial.' });
+  }
+});
+
+// DELETE TRIAL
+router.delete('/:id', authenticateToken, async (req, res) => {
+  try {
+    const trialId = req.params.id;
+    const userId = req.user.userId || req.user.id || req.userId;
+
+    await Trial.findOneAndDelete({ _id: trialId, scout: userId });
+    res.json({ message: 'Trial card deleted successfully.' });
+  } catch (err) {
+    console.error('Error deleting trial:', err);
+    res.status(500).json({ error: 'Failed to delete trial.' });
   }
 });
 

@@ -14,6 +14,8 @@ const videoRoutes = require('./api/routes/videos');
 const trialRoutes = require('./api/routes/trials');
 const errorHandler = require('./middleware/errorHandler');
 
+const path = require('path');
+
 const app = express();
 
 app.use(
@@ -27,6 +29,7 @@ app.use(
 
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true }));
+app.use('/uploads', express.static(path.join(__dirname, 'public/uploads')));
 
 app.get('/api/health', (req, res) => {
   res.json({

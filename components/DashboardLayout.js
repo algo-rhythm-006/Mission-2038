@@ -5,7 +5,7 @@ import { useRouter, usePathname } from "next/navigation";
 import { api } from "@/lib/api";
 import {
   Home, User, Video, TrendingUp, Trophy, Users,
-  MessageSquare, Bell, Settings, LogOut, Search, BookOpen, ShieldAlert
+  MessageSquare, Bell, Settings, LogOut, Search, BookOpen, ShieldAlert, FileText
 } from "lucide-react";
 
 export default function DashboardLayout({ children }) {
@@ -77,6 +77,7 @@ export default function DashboardLayout({ children }) {
         { name: "Analytics", href: "/player/analytics", icon: TrendingUp },
         { name: "Upload Video", href: "/player/upload", icon: Video },
         { name: "Tournaments", href: "/player/tournaments", icon: Trophy },
+        { name: "Scout Reports", href: "/scout/reports", icon: FileText },
         { name: "Community", href: "/player/community", icon: Users },
         { name: "Messages", href: "/player/messages", icon: MessageSquare },
         { name: "Profile", href: "/player/settings", icon: Settings },
@@ -87,6 +88,7 @@ export default function DashboardLayout({ children }) {
         { name: "Search Players", href: "/scout/search", icon: Search },
         { name: "Trials Calendar", href: "/scout/trials", icon: Trophy },
         { name: "Saved Players", href: "/scout/saved", icon: BookOpen },
+        { name: "Scout Reports", href: "/scout/reports", icon: FileText },
         { name: "Messages", href: "/scout/messages", icon: MessageSquare },
         { name: "Settings", href: "/scout/settings", icon: Settings },
       ];
@@ -95,12 +97,14 @@ export default function DashboardLayout({ children }) {
         { name: "Dashboard", href: "/coach", icon: Home },
         { name: "Squad Board", href: "/coach/squad", icon: Users },
         { name: "Tournaments", href: "/coach/tournaments", icon: Trophy },
+        { name: "Scout Reports", href: "/scout/reports", icon: FileText },
         { name: "Messages", href: "/coach/messages", icon: MessageSquare },
         { name: "Settings", href: "/coach/settings", icon: Settings },
       ];
     } else if (role === "admin") {
       return [
         { name: "Admin Panel", href: "/admin", icon: ShieldAlert },
+        { name: "Scout Reports", href: "/scout/reports", icon: FileText },
         { name: "Settings", href: "/admin/settings", icon: Settings },
       ];
     }

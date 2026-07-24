@@ -55,6 +55,37 @@ export default function PlayerSettings() {
   const [saving, setSaving] = useState(false);
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState(null);
+  const [uploadingAvatar, setUploadingAvatar] = useState(false);
+
+  const handleAvatarUpload = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (file.size > 10 * 1024 * 1024) {
+      setError("Avatar image size must be less than 10MB.");
+      return;
+    }
+
+    setUploadingAvatar(true);
+    setError(null);
+
+    try {
+      const uploadData = new FormData();
+      uploadData.append("image", file);
+      const res = await api.upload("/upload/image", uploadData);
+      if (res && (res.secure_url || res.url)) {
+        const cloudinaryUrl = res.secure_url || res.url;
+        setFormData((prev) => ({ ...prev, profilePhoto: cloudinaryUrl }));
+      } else {
+        throw new Error("Failed to retrieve Cloudinary URL");
+      }
+    } catch (err) {
+      console.error("Avatar Cloudinary upload error:", err);
+      setError("Cloudinary Avatar Upload Failed: " + (err.message || "Ensure Cloudinary is configured in .env"));
+    } finally {
+      setUploadingAvatar(false);
+    }
+  };
 
   useEffect(() => {
     api.get("/dashboard/profile")
@@ -263,9 +294,45 @@ export default function PlayerSettings() {
                     className="w-full bg-zinc-950 border border-zinc-800 focus:border-yellow-400 focus:outline-none rounded-xl p-4 text-white text-sm" />
                 </div>
                 <div className="md:col-span-2">
-                  <label className="block text-xs uppercase tracking-wider text-zinc-400 font-bold mb-1">Profile Photo URL</label>
-                  <input type="text" name="profilePhoto" value={formData.profilePhoto} onChange={handleChange} placeholder="https://..."
-                    className="w-full bg-zinc-950 border border-zinc-800 focus:border-yellow-400 focus:outline-none rounded-xl p-4 text-white text-sm" />
+                  <label className="block text-xs uppercase tracking-wider text-zinc-400 font-bold mb-2">
+                    Profile Avatar (Stored Exclusively in Cloudinary)
+                  </label>
+                  <div className="flex flex-col sm:flex-row items-center gap-4 bg-zinc-950/60 p-4 border border-zinc-800 rounded-2xl">
+                    <div className="relative w-16 h-16 rounded-full overflow-hidden border-2 border-yellow-400/40 shrink-0 bg-zinc-900">
+                      <img
+                        src={formData.profilePhoto || "https://images.unsplash.com/photo-1508098682722-e99c43a406b2?w=150"}
+                        alt="Avatar"
+                        className="w-full h-full object-cover"
+                      />
+                    </div>
+                    <div className="flex-1 w-full space-y-2">
+                      <div className="flex items-center gap-3">
+                        <label className={`cursor-pointer inline-flex items-center justify-center bg-zinc-800 hover:bg-zinc-700 text-yellow-400 text-xs uppercase tracking-wider font-bold px-4 py-2.5 rounded-xl border border-zinc-700 transition-all ${uploadingAvatar ? 'opacity-50 cursor-not-allowed' : ''}`}>
+                          {uploadingAvatar ? "Uploading to Cloudinary..." : "Upload Avatar Image"}
+                          <input
+                            type="file"
+                            accept="image/*"
+                            onChange={handleAvatarUpload}
+                            disabled={uploadingAvatar}
+                            className="hidden"
+                          />
+                        </label>
+                        {formData.profilePhoto && formData.profilePhoto.includes("cloudinary") && (
+                          <span className="text-[10px] text-green-400 uppercase tracking-widest font-mono font-bold bg-green-950/40 border border-green-800 px-2 py-1 rounded-md">
+                            ✓ Cloudinary Secured
+                          </span>
+                        )}
+                      </div>
+                      <input
+                        type="text"
+                        name="profilePhoto"
+                        value={formData.profilePhoto}
+                        onChange={handleChange}
+                        placeholder="https://res.cloudinary.com/..."
+                        className="w-full bg-zinc-950 border border-zinc-800 focus:border-yellow-400 focus:outline-none rounded-xl p-3 text-white text-xs font-mono"
+                      />
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
