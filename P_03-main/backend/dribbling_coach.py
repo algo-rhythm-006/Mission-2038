@@ -115,7 +115,7 @@ def analyze_dribbling(video_path, show_visuals=False):
     cap.release()
 
     if total_frames > 0:
-        control_rating = (control_frames * 100) / total_frames
+        control_rating = (control_frames * 100) / max(1, total_frames)
     else:
         control_rating = 0.0
 

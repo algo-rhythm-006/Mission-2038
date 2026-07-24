@@ -296,7 +296,7 @@ router.get('/:id/analyze', authenticateToken, async (req, res) => {
         const streamFile = (await axios.get(video.url, { responseType: 'stream' })).data;
 
         form.append('file', streamFile, { filename: path.basename(video.url) || 'input.mp4' });
-        form.append('show_visuals', 'false');
+        form.append('show_visuals', 'true');
 
         const apiUrl = `${fastApiUrl}/analyze/${drillType}`;
         console.log(`[Python AI Bridge] Forwarding ${video.title} from Cloudinary to FastAPI model endpoint: ${apiUrl}`);
@@ -311,30 +311,32 @@ router.get('/:id/analyze', authenticateToken, async (req, res) => {
         });
 
         useFastAPI = true;
-        let sseData = '';
+        let buffer = '';
+        let finalResult = null;
 
         response.data.on('data', (chunk) => {
           const text = chunk.toString();
           res.write(text);
-          sseData += text;
+          buffer += text;
+
+          let lines = buffer.split('\n\n');
+          buffer = lines.pop();
+
+          for (const line of lines) {
+            if (line.startsWith('data: ')) {
+              try {
+                const payload = JSON.parse(line.substring(6));
+                if (payload.type === 'result') {
+                  finalResult = payload.data;
+                }
+              } catch (e) {}
+            }
+          }
         });
 
         response.data.on('end', async () => {
           try {
             console.log('[Python AI Bridge] Python model analysis completed successfully.');
-            const lines = sseData.split('\n\n');
-            let finalResult = null;
-
-            for (const line of lines) {
-              if (line.startsWith('data: ')) {
-                try {
-                  const payload = JSON.parse(line.substring(6));
-                  if (payload.type === 'result') {
-                    finalResult = payload.data;
-                  }
-                } catch (e) {}
-              }
-            }
 
             if (finalResult) {
               const analysis = new Analysis({
