@@ -13,7 +13,11 @@ export default function PlayerDashboard() {
   const [error, setError] = useState(null);
 
   useEffect(() => {
-    // Fetch player dashboard metrics
+    loadDashboard();
+  }, []);
+
+  const loadDashboard = () => {
+    setLoading(true);
     api.get("/dashboard/player/dashboard")
       .then(res => {
         setData(res);
@@ -23,7 +27,37 @@ export default function PlayerDashboard() {
         setError(err.message || "Failed to load player stats.");
         setLoading(false);
       });
-  }, []);
+  };
+
+  const handleApplyTrial = async (trialId) => {
+    try {
+      await api.post(`/trials/${trialId}/apply`);
+      loadDashboard();
+    } catch (err) {
+      console.error("Error accepting trial:", err);
+    }
+  };
+
+  const handleDeclineTrial = async (trialId) => {
+    try {
+      await api.post(`/trials/${trialId}/decline`);
+      loadDashboard();
+    } catch (err) {
+      console.error("Error declining trial:", err);
+    }
+  };
+
+  const getScoutDisplayName = (trial) => {
+    if (trial.scoutName && trial.scoutName !== 'Scout' && trial.scoutName !== 'Scout Organizer') {
+      return trial.scoutName;
+    }
+    const rawEmail = trial.scout?.email || (typeof trial.scout === 'string' ? trial.scout : '');
+    if (rawEmail && rawEmail.includes('@')) {
+      const username = rawEmail.split('@')[0];
+      return username.charAt(0).toUpperCase() + username.slice(1);
+    }
+    return trial.scoutName || "Scout Organizer";
+  };
 
   if (loading) {
     return (
@@ -155,37 +189,82 @@ export default function PlayerDashboard() {
               )}
             </div>
 
-            {/* UPCOMING TRIALS CARD */}
+            {/* UPCOMING TRIALS & INVITES CARD */}
             <div className="bg-zinc-900/30 border border-zinc-800 rounded-3xl p-6">
-              <h3 className="text-md font-bold uppercase tracking-widest text-white flex items-center gap-2 mb-6 border-b border-zinc-800 pb-4">
-                <Calendar className="text-yellow-400 w-5 h-5" /> Invites & Trial Schedules
-              </h3>
+              <div className="flex justify-between items-center mb-6 border-b border-zinc-800 pb-4">
+                <h3 className="text-md font-bold uppercase tracking-widest text-white flex items-center gap-2">
+                  <Calendar className="text-yellow-400 w-5 h-5" /> Invites & Trial Schedules
+                </h3>
+                <button
+                  onClick={() => router.push('/player/tournaments')}
+                  className="text-yellow-400 text-xs font-bold uppercase tracking-widest hover:underline"
+                >
+                  View All Board →
+                </button>
+              </div>
 
               {trials && trials.length > 0 ? (
                 <div className="space-y-4">
-                  {trials.map((trial) => (
-                    <div key={trial._id} className="bg-zinc-950/60 p-5 rounded-2xl border border-zinc-800 flex justify-between items-center gap-4">
-                      <div className="space-y-1">
-                        <span className="text-[10px] uppercase font-bold tracking-widest text-yellow-400">Scout Trial</span>
-                        <h4 className="text-white font-bold text-md">Location: {trial.location}</h4>
-                        <p className="text-xs text-zinc-400">Scout contact: {trial.scout?.email || "Verification Pending"}</p>
-                        {trial.notes && <p className="text-xs text-zinc-500 italic">Notes: {trial.notes}</p>}
-                      </div>
-                      <div className="text-right shrink-0">
-                        <div className="bg-zinc-900 px-4 py-2 rounded-lg border border-zinc-800 text-center">
-                          <span className="block text-xs font-black text-white">{new Date(trial.date).toLocaleDateString()}</span>
-                          <span className="text-[10px] text-zinc-500 font-bold uppercase">{trial.time}</span>
+                  {trials.map((trial) => {
+                    const isAccepted = trial.myStatus === "accepted";
+                    const isRegistered = trial.isRegistered;
+                    const scoutDisplayName = getScoutDisplayName(trial);
+
+                    return (
+                      <div key={trial._id} className="bg-zinc-950/80 p-5 rounded-2xl border border-zinc-800 flex flex-col md:flex-row justify-between items-start md:items-center gap-4 shadow-xl">
+                        <div className="space-y-1 truncate">
+                          <span className={`text-[9px] uppercase font-black tracking-widest px-2.5 py-0.5 rounded border inline-block ${
+                            isAccepted
+                              ? "bg-green-500/20 text-green-400 border-green-500/40"
+                              : trial.privacy === "private"
+                              ? "bg-amber-500/20 text-amber-400 border-amber-500/40"
+                              : "bg-yellow-400/20 text-yellow-400 border-yellow-400/40"
+                          }`}>
+                            {isAccepted ? "ACCEPTED ✓" : trial.privacy === "private" ? "🔒 PRIVATE INVITATION" : "📢 PUBLIC TRIAL"}
+                          </span>
+                          <h4 className="text-white font-bold text-md uppercase truncate">{trial.title || `Trial at ${trial.location}`}</h4>
+                          <p className="text-xs text-zinc-400">Venue: {trial.location}</p>
+                          <p className="text-[10px] text-zinc-500 font-bold uppercase tracking-wider">
+                            Organized by: <span className="text-zinc-300 font-black">{scoutDisplayName}</span> {trial.scoutOrganization ? `(${trial.scoutOrganization})` : ""}
+                          </p>
                         </div>
-                        <span className="inline-block mt-2 text-[10px] uppercase font-bold text-green-400 tracking-wider">
-                          {trial.status}
-                        </span>
+
+                        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 shrink-0 w-full md:w-auto justify-between">
+                          <div className="bg-zinc-900 px-4 py-2 rounded-xl border border-zinc-800 text-center">
+                            <span className="block text-xs font-black text-white">{new Date(trial.date).toLocaleDateString()}</span>
+                            <span className="text-[10px] text-zinc-500 font-bold uppercase">{trial.time}</span>
+                          </div>
+
+                          {!isRegistered ? (
+                            <div className="flex items-center gap-2">
+                              <button
+                                onClick={() => handleApplyTrial(trial._id)}
+                                className="bg-gradient-to-r from-yellow-400 to-amber-500 text-black font-black uppercase text-[10px] tracking-wider px-3.5 py-2 rounded-xl hover:scale-105 transition-all shadow-md"
+                              >
+                                {trial.privacy === "private" ? "Accept Invite" : "Apply"}
+                              </button>
+                              <button
+                                onClick={() => handleDeclineTrial(trial._id)}
+                                className="bg-zinc-900 text-red-400 border border-red-500/40 font-bold uppercase text-[10px] tracking-wider px-3.5 py-2 rounded-xl hover:bg-red-500/10 transition-all"
+                              >
+                                Decline
+                              </button>
+                            </div>
+                          ) : (
+                            <span className={`text-[10px] font-black uppercase tracking-wider px-3 py-1.5 rounded-lg border ${
+                              isAccepted ? "bg-green-500/20 text-green-400 border-green-500/40" : "bg-yellow-400/20 text-yellow-400 border-yellow-400/40"
+                            }`}>
+                              {isAccepted ? "CONFIRMED ✓" : "SUBMITTED • PENDING"}
+                            </span>
+                          )}
+                        </div>
                       </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               ) : (
                 <div className="text-center py-8 text-zinc-500 text-xs">
-                  No upcoming trials scheduled. Build up your AI score to catch scout attention!
+                  No active trial invitations or schedules. Build up your AI score to catch scout attention!
                 </div>
               )}
             </div>

@@ -11,6 +11,7 @@ const dashboardRoutes = require('./api/routes/dashboard');
 const socialRoutes = require('./api/routes/social');
 const tournamentRoutes = require('./api/routes/tournaments');
 const videoRoutes = require('./api/routes/videos');
+const trialRoutes = require('./api/routes/trials');
 const errorHandler = require('./middleware/errorHandler');
 
 const app = express();
@@ -39,6 +40,7 @@ app.use('/api/auth', authRoutes);
 app.use('/api/dashboard', dashboardRoutes);
 app.use('/api/social', socialRoutes);
 app.use('/api/tournaments', tournamentRoutes);
+app.use('/api/trials', trialRoutes);
 app.use('/api/videos', videoRoutes);
 app.use('/api/upload', uploadRoutes);
 

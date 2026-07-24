@@ -20,6 +20,7 @@ function RegisterContent() {
     name: "",
     phone: "",
     dob: "",
+    ageCategory: "Senior",
     gender: "male",
     state: "Delhi",
     district: "New Delhi",
@@ -27,13 +28,12 @@ function RegisterContent() {
     pin: "",
     bio: "",
     profilePhoto: "",
-    
+
     // Player specific
     height: "",
     weight: "",
     dominantFoot: "right",
-    preferredPosition: "CF",
-    secondaryPosition: "LW",
+    preferredPosition: "ST",
     currentClub: "",
     previousClub: "",
     matchesPlayed: "0",
@@ -102,7 +102,7 @@ function RegisterContent() {
       };
 
       const res = await api.post("/auth/register", payload);
-      
+
       // Store session details
       api.setTokens(res.accessToken, res.refreshToken);
       localStorage.setItem("user", JSON.stringify(res.user));
@@ -131,11 +131,10 @@ function RegisterContent() {
               <button
                 key={r}
                 onClick={() => setRole(r)}
-                className={`px-4 py-2 text-sm font-semibold rounded-md uppercase tracking-wider transition-all ${
-                  role === r
+                className={`px-4 py-2 text-sm font-semibold rounded-md uppercase tracking-wider transition-all ${role === r
                     ? "bg-yellow-400 text-black shadow-md"
                     : "text-zinc-400 hover:text-white"
-                }`}
+                  }`}
               >
                 {r}
               </button>
@@ -181,6 +180,19 @@ function RegisterContent() {
                   <label className="block text-xs uppercase tracking-wider text-zinc-400 mb-1">Date of Birth</label>
                   <input type="date" name="dob" value={formData.dob} onChange={handleChange}
                     className="w-full bg-zinc-950 border border-zinc-800 focus:border-yellow-400 focus:outline-none rounded p-3 text-white" />
+                </div>
+                <div>
+                  <label className="block text-xs uppercase tracking-wider text-zinc-400 mb-1">Age Category</label>
+                  <select name="ageCategory" value={formData.ageCategory} onChange={handleChange}
+                    className="w-full bg-zinc-950 border border-zinc-800 focus:border-yellow-400 focus:outline-none rounded p-3 text-white">
+                    <option value="U-13">U-13 (Under 13)</option>
+                    <option value="U-15">U-15 (Under 15)</option>
+                    <option value="U-17">U-17 (Under 17)</option>
+                    <option value="U-19">U-19 (Under 19)</option>
+                    <option value="U-21">U-21 (Under 21)</option>
+                    <option value="U-23">U-23 (Under 23)</option>
+                    <option value="Senior">Senior</option>
+                  </select>
                 </div>
                 <div>
                   <label className="block text-xs uppercase tracking-wider text-zinc-400 mb-1">Gender</label>
@@ -252,8 +264,20 @@ function RegisterContent() {
                     </div>
                     <div>
                       <label className="block text-xs uppercase tracking-wider text-zinc-400 mb-1">Preferred Position</label>
-                      <input type="text" name="preferredPosition" placeholder="e.g. ST, LW, CB" value={formData.preferredPosition} onChange={handleChange}
-                        className="w-full bg-zinc-950 border border-zinc-800 focus:border-yellow-400 focus:outline-none rounded p-3 text-white" />
+                      <select name="preferredPosition" value={formData.preferredPosition} onChange={handleChange}
+                        className="w-full bg-zinc-950 border border-zinc-800 focus:border-yellow-400 focus:outline-none rounded p-3 text-white">
+                        <option value="ST">ST (Striker)</option>
+                        <option value="LW">LW (Left Wing)</option>
+                        <option value="RW">RW (Right Wing)</option>
+                        <option value="CAM">CAM (Central Attacking Midfielder)</option>
+                        <option value="CM">CM (Central Midfielder)</option>
+                        <option value="CDM">CDM (Central Defensive Midfielder)</option>
+                        <option value="LB">LB (Left Back)</option>
+                        <option value="RB">RB (Right Back)</option>
+                        <option value="CB">CB (Center Back)</option>
+                        <option value="GK">GK (Goalkeeper)</option>
+                        <option value="WB">WB (Wing Back)</option>
+                      </select>
                     </div>
                   </div>
                 </div>
@@ -383,20 +407,120 @@ function RegisterContent() {
                     <input type="text" name="license" placeholder="e.g. AIFF Scout License B" value={formData.license} onChange={handleChange}
                       className="w-full bg-zinc-950 border border-zinc-800 focus:border-yellow-400 focus:outline-none rounded p-3 text-white" />
                   </div>
-                  <div>
+                  <div className="md:col-span-2">
                     <label className="block text-xs uppercase tracking-wider text-zinc-400 mb-1">Areas of Interest (comma-separated)</label>
                     <input type="text" name="areasOfInterest" value={formData.areasOfInterest} onChange={handleChange}
                       className="w-full bg-zinc-950 border border-zinc-800 focus:border-yellow-400 focus:outline-none rounded p-3 text-white" />
                   </div>
-                  <div>
-                    <label className="block text-xs uppercase tracking-wider text-zinc-400 mb-1">Age Groups Covered (comma-separated)</label>
-                    <input type="text" name="ageGroupsCovered" value={formData.ageGroupsCovered} onChange={handleChange}
-                      className="w-full bg-zinc-950 border border-zinc-800 focus:border-yellow-400 focus:outline-none rounded p-3 text-white" />
+                  <div className="md:col-span-2 space-y-2">
+                    <div className="flex justify-between items-center">
+                      <label className="block text-xs uppercase tracking-wider text-zinc-400 font-bold">
+                        Age Groups Covered (Select Multiple)
+                      </label>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const allGroups = ["U-13", "U-15", "U-17", "U-19", "U-21", "U-23", "Senior"];
+                          const currentList = Array.isArray(formData.ageGroupsCovered)
+                            ? formData.ageGroupsCovered
+                            : (formData.ageGroupsCovered ? formData.ageGroupsCovered.split(",").map(s => s.trim()).filter(Boolean) : []);
+                          const isAllSelected = allGroups.every(g => currentList.includes(g));
+                          setFormData(prev => ({ ...prev, ageGroupsCovered: isAllSelected ? "" : allGroups.join(", ") }));
+                        }}
+                        className="text-[10px] font-bold uppercase tracking-widest text-yellow-400 hover:underline bg-yellow-400/10 px-2.5 py-1 rounded border border-yellow-400/30 transition-all"
+                      >
+                        {(() => {
+                          const allGroups = ["U-13", "U-15", "U-17", "U-19", "U-21", "U-23", "Senior"];
+                          const currentList = Array.isArray(formData.ageGroupsCovered)
+                            ? formData.ageGroupsCovered
+                            : (formData.ageGroupsCovered ? formData.ageGroupsCovered.split(",").map(s => s.trim()).filter(Boolean) : []);
+                          return allGroups.every(g => currentList.includes(g)) ? "Clear All" : "Select All";
+                        })()}
+                      </button>
+                    </div>
+                    <div className="flex flex-wrap gap-2 p-3 bg-zinc-950 border border-zinc-800 rounded">
+                      {["U-13", "U-15", "U-17", "U-19", "U-21", "U-23", "Senior"].map((group) => {
+                        const currentList = Array.isArray(formData.ageGroupsCovered)
+                          ? formData.ageGroupsCovered
+                          : (formData.ageGroupsCovered ? formData.ageGroupsCovered.split(",").map(s => s.trim()).filter(Boolean) : []);
+                        const isSelected = currentList.includes(group);
+
+                        return (
+                          <button
+                            key={group}
+                            type="button"
+                            onClick={() => {
+                              const updated = isSelected
+                                ? currentList.filter(g => g !== group)
+                                : [...currentList, group];
+                              setFormData(prev => ({ ...prev, ageGroupsCovered: updated.join(", ") }));
+                            }}
+                            className={`px-3 py-1.5 rounded text-xs font-bold uppercase tracking-wider transition-all border ${
+                              isSelected
+                                ? "bg-yellow-400 text-black border-yellow-400"
+                                : "bg-zinc-900 text-zinc-400 border-zinc-800 hover:border-zinc-700 hover:text-white"
+                            }`}
+                          >
+                            {group} {isSelected ? "✓" : "+"}
+                          </button>
+                        );
+                      })}
+                    </div>
                   </div>
-                  <div className="md:col-span-2">
-                    <label className="block text-xs uppercase tracking-wider text-zinc-400 mb-1">Positions Interested (comma-separated)</label>
-                    <input type="text" name="positionsInterested" value={formData.positionsInterested} onChange={handleChange}
-                      className="w-full bg-zinc-950 border border-zinc-800 focus:border-yellow-400 focus:outline-none rounded p-3 text-white" />
+                  <div className="md:col-span-2 space-y-2">
+                    <div className="flex justify-between items-center">
+                      <label className="block text-xs uppercase tracking-wider text-zinc-400 font-bold">
+                        Positions Target (Select Multiple)
+                      </label>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const allPos = ["ST", "LW", "RW", "CAM", "CM", "CDM", "LB", "RB", "CB", "GK", "WB"];
+                          const currentList = Array.isArray(formData.positionsInterested)
+                            ? formData.positionsInterested
+                            : (formData.positionsInterested ? formData.positionsInterested.split(",").map(s => s.trim()).filter(Boolean) : []);
+                          const isAllSelected = allPos.every(p => currentList.includes(p));
+                          setFormData(prev => ({ ...prev, positionsInterested: isAllSelected ? "" : allPos.join(", ") }));
+                        }}
+                        className="text-[10px] font-bold uppercase tracking-widest text-amber-400 hover:underline bg-amber-400/10 px-2.5 py-1 rounded border border-amber-400/30 transition-all"
+                      >
+                        {(() => {
+                          const allPos = ["ST", "LW", "RW", "CAM", "CM", "CDM", "LB", "RB", "CB", "GK", "WB"];
+                          const currentList = Array.isArray(formData.positionsInterested)
+                            ? formData.positionsInterested
+                            : (formData.positionsInterested ? formData.positionsInterested.split(",").map(s => s.trim()).filter(Boolean) : []);
+                          return allPos.every(p => currentList.includes(p)) ? "Clear All" : "Select All";
+                        })()}
+                      </button>
+                    </div>
+                    <div className="flex flex-wrap gap-2 p-3 bg-zinc-950 border border-zinc-800 rounded">
+                      {["ST", "LW", "RW", "CAM", "CM", "CDM", "LB", "RB", "CB", "GK", "WB"].map((pos) => {
+                        const currentList = Array.isArray(formData.positionsInterested)
+                          ? formData.positionsInterested
+                          : (formData.positionsInterested ? formData.positionsInterested.split(",").map(s => s.trim()).filter(Boolean) : []);
+                        const isSelected = currentList.includes(pos);
+
+                        return (
+                          <button
+                            key={pos}
+                            type="button"
+                            onClick={() => {
+                              const updated = isSelected
+                                ? currentList.filter(p => p !== pos)
+                                : [...currentList, pos];
+                              setFormData(prev => ({ ...prev, positionsInterested: updated.join(", ") }));
+                            }}
+                            className={`px-3 py-1.5 rounded text-xs font-bold uppercase tracking-wider transition-all border ${
+                              isSelected
+                                ? "bg-amber-500 text-black border-amber-500"
+                                : "bg-zinc-900 text-zinc-400 border-zinc-800 hover:border-zinc-700 hover:text-white"
+                            }`}
+                          >
+                            {pos} {isSelected ? "✓" : "+"}
+                          </button>
+                        );
+                      })}
+                    </div>
                   </div>
                 </div>
               </div>
@@ -449,9 +573,8 @@ function RegisterContent() {
               <button
                 type="submit"
                 disabled={loading}
-                className={`bg-gradient-to-r from-yellow-400 to-amber-500 px-8 py-3 rounded-full font-bold uppercase tracking-wider text-black shadow-lg hover:scale-105 transition-all ${
-                  loading ? "opacity-75 cursor-not-allowed" : ""
-                }`}
+                className={`bg-gradient-to-r from-yellow-400 to-amber-500 px-8 py-3 rounded-full font-bold uppercase tracking-wider text-black shadow-lg hover:scale-105 transition-all ${loading ? "opacity-75 cursor-not-allowed" : ""
+                  }`}
               >
                 {loading ? "Registering..." : "Submit Application"}
               </button>

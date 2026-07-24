@@ -46,7 +46,7 @@ export default function ScoutDashboard() {
     );
   }
 
-  const { profile, trials = [], savedPlayers = [] } = data;
+  const { profile, trials = [], savedPlayers = [], acceptedCount = 0 } = data;
 
   return (
     <DashboardLayout>
@@ -85,7 +85,7 @@ export default function ScoutDashboard() {
         </div>
 
         {/* METRICS */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
           <div className="bg-zinc-900/40 border border-zinc-800/85 rounded-2xl p-6">
             <span className="block text-[10px] uppercase tracking-widest text-zinc-500 font-bold mb-2">Saved Prospect Lists</span>
             <span className="text-4xl font-black text-yellow-400">{savedPlayers.length} Players</span>
@@ -93,6 +93,10 @@ export default function ScoutDashboard() {
           <div className="bg-zinc-900/40 border border-zinc-800/85 rounded-2xl p-6">
             <span className="block text-[10px] uppercase tracking-widest text-zinc-500 font-bold mb-2">Active Scheduled Trials</span>
             <span className="text-4xl font-black text-white">{trials.length} Tryouts</span>
+          </div>
+          <div className="bg-gradient-to-b from-green-950/30 to-zinc-900/40 border border-green-500/30 rounded-2xl p-6 relative overflow-hidden">
+            <span className="block text-[10px] uppercase tracking-widest text-green-400 font-bold mb-2">Confirmed Accepted Prospects</span>
+            <span className="text-4xl font-black text-green-400">{acceptedCount} Players</span>
           </div>
           <div className="bg-zinc-900/40 border border-zinc-800/85 rounded-2xl p-6">
             <span className="block text-[10px] uppercase tracking-widest text-zinc-500 font-bold mb-2">Representing Club</span>

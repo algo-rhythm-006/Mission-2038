@@ -43,6 +43,17 @@ export default function ScoutSearch() {
 
   useEffect(() => {
     executeSearch();
+    api.get("/dashboard/scout/dashboard")
+      .then(res => {
+        const savedMap = {};
+        (res.savedPlayers || []).forEach(p => {
+          const uId = p.user?._id || p.user || p._id;
+          savedMap[uId] = true;
+          if (p._id) savedMap[p._id] = true;
+        });
+        setSavedStatus(savedMap);
+      })
+      .catch(err => console.error(err));
   }, []);
 
   const executeSearch = () => {
@@ -66,11 +77,19 @@ export default function ScoutSearch() {
     }));
   };
 
-  const handleSaveToggle = async (playerId) => {
+  const handleSaveToggle = async (playerObj) => {
     try {
-      const res = await api.post("/dashboard/scout/save", { playerId });
-      setSavedStatus(prev => ({ ...prev, [playerId]: res.saved }));
-      alert(res.message);
+      const pId = typeof playerObj === 'object'
+        ? (playerObj.user?._id || playerObj.user?.id || playerObj.user || playerObj._id)
+        : playerObj;
+      const profileId = typeof playerObj === 'object' ? playerObj._id : playerObj;
+
+      const res = await api.post("/dashboard/scout/save", { playerId: pId });
+      setSavedStatus(prev => ({
+        ...prev,
+        [pId]: res.saved,
+        [profileId]: res.saved
+      }));
     } catch (e) {
       console.error(e);
     }
@@ -287,10 +306,15 @@ export default function ScoutSearch() {
                 {/* Action Shortcuts */}
                 <div className="flex gap-4 border-t border-zinc-850 pt-6">
                   <button 
-                    onClick={() => handleSaveToggle(selectedPlayer._id)}
-                    className="flex-1 bg-zinc-900 border border-zinc-800 text-zinc-300 hover:text-white font-bold text-xs uppercase py-3.5 rounded-xl transition-all"
+                    onClick={() => handleSaveToggle(selectedPlayer)}
+                    className={`flex-1 font-bold text-xs uppercase py-3.5 rounded-xl transition-all border flex items-center justify-center gap-2 ${
+                      savedStatus[selectedPlayer.user?._id] || savedStatus[selectedPlayer._id]
+                        ? "bg-amber-500 text-black border-amber-500 shadow-[0_0_15px_rgba(245,158,11,0.3)]"
+                        : "bg-zinc-900 border-zinc-800 text-zinc-300 hover:text-white hover:border-zinc-700"
+                    }`}
                   >
-                    {savedStatus[selectedPlayer._id] ? "Saved ✓" : "Save Prospect"}
+                    <Star className={`w-4 h-4 ${savedStatus[selectedPlayer.user?._id] || savedStatus[selectedPlayer._id] ? "fill-black stroke-black" : ""}`} />
+                    {savedStatus[selectedPlayer.user?._id] || savedStatus[selectedPlayer._id] ? "SAVED PROSPECT ✓" : "SAVE PROSPECT"}
                   </button>
                   <button 
                     onClick={() => handleStartChat(selectedPlayer.user._id)}

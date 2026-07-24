@@ -3,15 +3,15 @@
 import { useState, useEffect } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import { api } from "@/lib/api";
-import { 
-  Home, User, Video, TrendingUp, Trophy, Users, 
+import {
+  Home, User, Video, TrendingUp, Trophy, Users,
   MessageSquare, Bell, Settings, LogOut, Search, BookOpen, ShieldAlert
 } from "lucide-react";
 
 export default function DashboardLayout({ children }) {
   const router = useRouter();
   const pathname = usePathname();
-  
+
   const [currentUser, setCurrentUser] = useState(null);
   const [currentProfile, setCurrentProfile] = useState(null);
   const [notifications, setNotifications] = useState([]);
@@ -23,12 +23,12 @@ export default function DashboardLayout({ children }) {
     if (typeof window !== "undefined") {
       const userStr = localStorage.getItem("user");
       const profileStr = localStorage.getItem("profile");
-      
+
       if (!userStr) {
         router.push("/login");
         return;
       }
-      
+
       const parsedUser = JSON.parse(userStr);
       setCurrentUser(parsedUser);
       if (profileStr) setCurrentProfile(JSON.parse(profileStr));
@@ -79,7 +79,7 @@ export default function DashboardLayout({ children }) {
         { name: "Tournaments", href: "/player/tournaments", icon: Trophy },
         { name: "Community", href: "/player/community", icon: Users },
         { name: "Messages", href: "/player/messages", icon: MessageSquare },
-        { name: "Settings", href: "/player/settings", icon: Settings },
+        { name: "Profile", href: "/player/settings", icon: Settings },
       ];
     } else if (role === "scout") {
       return [
@@ -111,9 +111,9 @@ export default function DashboardLayout({ children }) {
 
   return (
     <div className="min-h-screen bg-black text-white flex">
-      {/* SIDEBAR FOR DESKTOP */}
-      <aside className="hidden lg:flex flex-col w-72 bg-zinc-950/80 border-r border-zinc-800/80 backdrop-blur-xl p-6 select-none shrink-0">
-        <div className="flex items-center space-x-3 mb-10 px-2">
+      {/* FIXED SIDEBAR FOR DESKTOP */}
+      <aside className="hidden lg:flex flex-col w-72 h-screen fixed top-0 left-0 z-40 bg-zinc-950/90 border-r border-zinc-800/80 backdrop-blur-xl p-6 select-none">
+        <div className="flex items-center space-x-3 mb-8 px-2 shrink-0">
           <div className="w-10 h-10 rounded-full bg-gradient-to-r from-yellow-400 to-amber-500 flex items-center justify-center font-black text-black text-xl shadow-[0_0_20px_rgba(250,204,21,0.35)]">
             M
           </div>
@@ -128,12 +128,12 @@ export default function DashboardLayout({ children }) {
         </div>
 
         {/* User Card */}
-        <div className="mb-8 p-4 rounded-xl bg-zinc-900/50 border border-zinc-800 flex items-center space-x-3">
+        <div className="mb-6 p-4 rounded-xl bg-zinc-900/50 border border-zinc-800 flex items-center space-x-3 shrink-0">
           <div className="relative w-11 h-11 rounded-full overflow-hidden bg-zinc-800 border border-yellow-400/30">
-            <img 
-              src={currentProfile?.profilePhoto || "https://images.unsplash.com/photo-1508098682722-e99c43a406b2?w=150"} 
-              alt="Avatar" 
-              className="w-full h-full object-cover" 
+            <img
+              src={currentProfile?.profilePhoto || "https://images.unsplash.com/photo-1508098682722-e99c43a406b2?w=150"}
+              alt="Avatar"
+              className="w-full h-full object-cover"
             />
           </div>
           <div className="overflow-hidden">
@@ -147,7 +147,7 @@ export default function DashboardLayout({ children }) {
         </div>
 
         {/* Navigation links */}
-        <nav className="flex-1 space-y-1">
+        <nav className="flex-1 space-y-1 overflow-y-auto pr-1">
           {navLinks.map((link) => {
             const Icon = link.icon;
             const isActive = pathname === link.href;
@@ -155,11 +155,10 @@ export default function DashboardLayout({ children }) {
               <button
                 key={link.name}
                 onClick={() => router.push(link.href)}
-                className={`w-full flex items-center space-x-4 px-4 py-3 rounded-lg text-sm font-semibold tracking-wider transition-all duration-200 ${
-                  isActive
+                className={`w-full flex items-center space-x-4 px-4 py-3 rounded-lg text-sm font-semibold tracking-wider transition-all duration-200 ${isActive
                     ? "bg-gradient-to-r from-yellow-400/10 to-amber-500/10 border-l-4 border-yellow-400 text-yellow-400"
                     : "text-zinc-400 hover:text-white hover:bg-zinc-900/40"
-                }`}
+                  }`}
               >
                 <Icon className={`w-5 h-5 ${isActive ? "text-yellow-400" : "text-zinc-500 group-hover:text-white"}`} />
                 <span>{link.name}</span>
@@ -169,7 +168,7 @@ export default function DashboardLayout({ children }) {
         </nav>
 
         {/* Logout action */}
-        <div className="pt-6 border-t border-zinc-800/80">
+        <div className="pt-4 border-t border-zinc-800/80 shrink-0">
           <button
             onClick={handleSignOut}
             className="w-full flex items-center space-x-4 px-4 py-3 rounded-lg text-sm font-semibold tracking-wider text-zinc-500 hover:text-red-400 hover:bg-red-500/5 transition-all duration-200"
@@ -182,13 +181,13 @@ export default function DashboardLayout({ children }) {
 
       {/* MOBILE HEADER */}
       <div className="flex lg:hidden flex-col w-full min-h-screen bg-black">
-        <header className="flex items-center justify-between px-6 py-4 bg-zinc-950 border-b border-zinc-800">
+        <header className="flex items-center justify-between px-6 py-4 bg-zinc-950 border-b border-zinc-800 sticky top-0 z-30">
           <button onClick={() => setMobileOpen(!mobileOpen)} className="text-zinc-400 hover:text-white">
             <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
             </svg>
           </button>
-          
+
           <div className="flex items-center space-x-2">
             <h1 className="text-md font-black tracking-widest text-white">
               MISSION <span className="text-yellow-400">2K38</span>
@@ -223,11 +222,10 @@ export default function DashboardLayout({ children }) {
                         router.push(link.href);
                         setMobileOpen(false);
                       }}
-                      className={`w-full flex items-center space-x-4 px-4 py-3 rounded-lg text-sm font-semibold transition-all duration-200 ${
-                        isActive
+                      className={`w-full flex items-center space-x-4 px-4 py-3 rounded-lg text-sm font-semibold transition-all duration-200 ${isActive
                           ? "bg-yellow-400 text-black font-bold"
                           : "text-zinc-400 hover:text-white"
-                      }`}
+                        }`}
                     >
                       <Icon className="w-5 h-5" />
                       <span>{link.name}</span>
@@ -243,20 +241,20 @@ export default function DashboardLayout({ children }) {
           </div>
         )}
 
-        <main className="flex-1 overflow-y-auto p-4 md:p-8">
+        <main className="flex-1 p-4 md:p-8">
           {children}
         </main>
       </div>
 
-      {/* DESKTOP BODY WRAPPER */}
-      <div className="hidden lg:flex flex-col flex-1 min-w-0">
+      {/* DESKTOP BODY WRAPPER WITH LEFT PADDING FOR FIXED SIDEBAR */}
+      <div className="hidden lg:flex flex-col flex-1 min-w-0 lg:pl-72 min-h-screen">
         {/* TOPBAR */}
-        <header className="h-20 bg-zinc-950/20 border-b border-zinc-800/40 backdrop-blur-md flex items-center justify-end px-10 select-none">
+        <header className="h-20 sticky top-0 z-30 bg-zinc-950/40 border-b border-zinc-800/40 backdrop-blur-md flex items-center justify-end px-10 select-none shrink-0">
           <div className="flex items-center space-x-6">
             {/* Notification bell */}
             <div className="relative">
-              <button 
-                onClick={() => setShowNotifications(!showNotifications)} 
+              <button
+                onClick={() => setShowNotifications(!showNotifications)}
                 className="relative p-2 rounded-full hover:bg-zinc-900/60 border border-zinc-800/40 text-zinc-400 hover:text-white transition-all"
               >
                 <Bell className="w-5 h-5" />
@@ -282,8 +280,8 @@ export default function DashboardLayout({ children }) {
                       </div>
                     ) : (
                       notifications.map((n) => (
-                        <div 
-                          key={n._id} 
+                        <div
+                          key={n._id}
                           onClick={() => handleMarkAsRead(n._id)}
                           className={`p-4 hover:bg-zinc-900/30 transition-all cursor-pointer ${!n.read ? 'bg-yellow-400/5' : ''}`}
                         >
@@ -306,10 +304,10 @@ export default function DashboardLayout({ children }) {
                 Welcome, <strong className="text-white">{currentProfile?.name || currentUser.email.split('@')[0]}</strong>
               </span>
               <div className="w-8 h-8 rounded-full bg-zinc-800 overflow-hidden border border-yellow-400/20">
-                <img 
-                  src={currentProfile?.profilePhoto || "https://images.unsplash.com/photo-1508098682722-e99c43a406b2?w=150"} 
-                  alt="Avatar" 
-                  className="w-full h-full object-cover" 
+                <img
+                  src={currentProfile?.profilePhoto || "https://images.unsplash.com/photo-1508098682722-e99c43a406b2?w=150"}
+                  alt="Avatar"
+                  className="w-full h-full object-cover"
                 />
               </div>
             </div>
@@ -317,7 +315,7 @@ export default function DashboardLayout({ children }) {
         </header>
 
         {/* Content Container */}
-        <main className="flex-1 overflow-y-auto p-10 bg-zinc-950/20">
+        <main className="flex-1 p-6 md:p-10 bg-zinc-950/20">
           {children}
         </main>
       </div>

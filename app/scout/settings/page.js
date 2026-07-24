@@ -168,15 +168,115 @@ export default function ScoutSettings() {
                   <input type="text" name="areasOfInterest" value={formData.areasOfInterest} onChange={handleChange}
                     className="w-full bg-zinc-950 border border-zinc-800 focus:border-yellow-400 focus:outline-none rounded-xl p-4 text-white text-sm" />
                 </div>
-                <div className="md:col-span-2">
-                  <label className="block text-xs uppercase tracking-wider text-zinc-500 font-bold mb-1">Age Groups Covered (comma-separated)</label>
-                  <input type="text" name="ageGroupsCovered" value={formData.ageGroupsCovered} onChange={handleChange}
-                    className="w-full bg-zinc-950 border border-zinc-800 focus:border-yellow-400 focus:outline-none rounded-xl p-4 text-white text-sm" />
+                <div className="md:col-span-2 space-y-2">
+                  <div className="flex justify-between items-center">
+                    <label className="block text-xs uppercase tracking-wider text-zinc-500 font-bold">
+                      Age Groups Covered (Select Multiple)
+                    </label>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const allGroups = ["U-13", "U-15", "U-17", "U-19", "U-21", "U-23", "Senior"];
+                        const currentList = Array.isArray(formData.ageGroupsCovered)
+                          ? formData.ageGroupsCovered
+                          : (formData.ageGroupsCovered ? formData.ageGroupsCovered.split(",").map(s => s.trim()).filter(Boolean) : []);
+                        const isAllSelected = allGroups.every(g => currentList.includes(g));
+                        setFormData(prev => ({ ...prev, ageGroupsCovered: isAllSelected ? "" : allGroups.join(", ") }));
+                      }}
+                      className="text-[10px] font-black uppercase tracking-widest text-yellow-400 hover:underline bg-yellow-400/10 px-2.5 py-1 rounded-lg border border-yellow-400/30 transition-all"
+                    >
+                      {(() => {
+                        const allGroups = ["U-13", "U-15", "U-17", "U-19", "U-21", "U-23", "Senior"];
+                        const currentList = Array.isArray(formData.ageGroupsCovered)
+                          ? formData.ageGroupsCovered
+                          : (formData.ageGroupsCovered ? formData.ageGroupsCovered.split(",").map(s => s.trim()).filter(Boolean) : []);
+                        return allGroups.every(g => currentList.includes(g)) ? "Clear All" : "Select All";
+                      })()}
+                    </button>
+                  </div>
+                  <div className="flex flex-wrap gap-2 p-3 bg-zinc-950 border border-zinc-800 rounded-xl">
+                    {["U-13", "U-15", "U-17", "U-19", "U-21", "U-23", "Senior"].map((group) => {
+                      const currentList = Array.isArray(formData.ageGroupsCovered)
+                        ? formData.ageGroupsCovered
+                        : (formData.ageGroupsCovered ? formData.ageGroupsCovered.split(",").map(s => s.trim()).filter(Boolean) : []);
+                      const isSelected = currentList.includes(group);
+
+                      return (
+                        <button
+                          key={group}
+                          type="button"
+                          onClick={() => {
+                            const updated = isSelected
+                              ? currentList.filter(g => g !== group)
+                              : [...currentList, group];
+                            setFormData(prev => ({ ...prev, ageGroupsCovered: updated.join(", ") }));
+                          }}
+                          className={`px-3.5 py-2 rounded-lg text-xs font-black uppercase tracking-wider transition-all border ${
+                            isSelected
+                              ? "bg-yellow-400 text-black border-yellow-400 shadow-[0_0_12px_rgba(250,204,21,0.3)]"
+                              : "bg-zinc-900 text-zinc-400 border-zinc-800 hover:border-zinc-700 hover:text-white"
+                          }`}
+                        >
+                          {group} {isSelected ? "✓" : "+"}
+                        </button>
+                      );
+                    })}
+                  </div>
                 </div>
-                <div className="md:col-span-2">
-                  <label className="block text-xs uppercase tracking-wider text-zinc-500 font-bold mb-1">Positions Target (comma-separated)</label>
-                  <input type="text" name="positionsInterested" value={formData.positionsInterested} onChange={handleChange}
-                    className="w-full bg-zinc-950 border border-zinc-800 focus:border-yellow-400 focus:outline-none rounded-xl p-4 text-white text-sm" />
+                <div className="md:col-span-2 space-y-2">
+                  <div className="flex justify-between items-center">
+                    <label className="block text-xs uppercase tracking-wider text-zinc-500 font-bold">
+                      Positions Target (Select Multiple)
+                    </label>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const allPos = ["ST", "LW", "RW", "CAM", "CM", "CDM", "LB", "RB", "CB", "GK", "WB"];
+                        const currentList = Array.isArray(formData.positionsInterested)
+                          ? formData.positionsInterested
+                          : (formData.positionsInterested ? formData.positionsInterested.split(",").map(s => s.trim()).filter(Boolean) : []);
+                        const isAllSelected = allPos.every(p => currentList.includes(p));
+                        setFormData(prev => ({ ...prev, positionsInterested: isAllSelected ? "" : allPos.join(", ") }));
+                      }}
+                      className="text-[10px] font-black uppercase tracking-widest text-amber-400 hover:underline bg-amber-400/10 px-2.5 py-1 rounded-lg border border-amber-400/30 transition-all"
+                    >
+                      {(() => {
+                        const allPos = ["ST", "LW", "RW", "CAM", "CM", "CDM", "LB", "RB", "CB", "GK", "WB"];
+                        const currentList = Array.isArray(formData.positionsInterested)
+                          ? formData.positionsInterested
+                          : (formData.positionsInterested ? formData.positionsInterested.split(",").map(s => s.trim()).filter(Boolean) : []);
+                        return allPos.every(p => currentList.includes(p)) ? "Clear All" : "Select All";
+                      })()}
+                    </button>
+                  </div>
+                  <div className="flex flex-wrap gap-2 p-3 bg-zinc-950 border border-zinc-800 rounded-xl">
+                    {["ST", "LW", "RW", "CAM", "CM", "CDM", "LB", "RB", "CB", "GK", "WB"].map((pos) => {
+                      const currentList = Array.isArray(formData.positionsInterested)
+                        ? formData.positionsInterested
+                        : (formData.positionsInterested ? formData.positionsInterested.split(",").map(s => s.trim()).filter(Boolean) : []);
+                      const isSelected = currentList.includes(pos);
+
+                      return (
+                        <button
+                          key={pos}
+                          type="button"
+                          onClick={() => {
+                            const updated = isSelected
+                              ? currentList.filter(p => p !== pos)
+                              : [...currentList, pos];
+                            setFormData(prev => ({ ...prev, positionsInterested: updated.join(", ") }));
+                          }}
+                          className={`px-3.5 py-2 rounded-lg text-xs font-black uppercase tracking-wider transition-all border ${
+                            isSelected
+                              ? "bg-amber-500 text-black border-amber-500 shadow-[0_0_12px_rgba(245,158,11,0.3)]"
+                              : "bg-zinc-900 text-zinc-400 border-zinc-800 hover:border-zinc-700 hover:text-white"
+                          }`}
+                        >
+                          {pos} {isSelected ? "✓" : "+"}
+                        </button>
+                      );
+                    })}
+                  </div>
                 </div>
               </div>
             </div>

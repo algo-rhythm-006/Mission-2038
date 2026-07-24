@@ -16,6 +16,13 @@ export default function AICoachTerminal() {
   const [error, setError] = useState(null);
   
   const canvasRef = useRef(null);
+  const logsEndRef = useRef(null);
+
+  useEffect(() => {
+    if (logsEndRef.current) {
+      logsEndRef.current.scrollIntoView({ behavior: "smooth" });
+    }
+  }, [logMessages]);
 
   useEffect(() => {
     loadVideoHistory();
@@ -245,13 +252,14 @@ export default function AICoachTerminal() {
 
               {/* CONSOLE STATUS */}
               {logMessages.length > 0 && (
-                <div className="bg-black/85 p-5 border-t border-zinc-850 max-h-36 overflow-y-auto font-mono text-[10px] text-yellow-400/80 space-y-1.5 scrollbar-thin">
+                <div className="bg-black/85 p-5 border-t border-zinc-850 max-h-48 overflow-y-auto font-mono text-[10px] text-yellow-400/80 space-y-1.5 scrollbar-thin">
                   {logMessages.map((msg, i) => (
                     <div key={i} className="flex gap-2">
                       <span className="text-zinc-650 select-none">[{i+1}]</span>
                       <span>{msg}</span>
                     </div>
                   ))}
+                  <div ref={logsEndRef} />
                 </div>
               )}
             </div>

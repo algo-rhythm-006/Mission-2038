@@ -32,7 +32,7 @@ router.get('/profile', authenticateToken, async (req, res) => {
 // 2. GET TARGET USER PROFILE BY ID
 router.get('/profile/:userId', async (req, res) => {
   try {
-    const profile = await Profile.findOne({ user: req.userId || req.params.userId }).populate('user', 'email role');
+    const profile = await Profile.findOne({ user: req.params.userId }).populate('user', 'email role');
     if (!profile) return res.status(404).json({ error: 'Profile not found.' });
 
     // Fetch player videos if it's a player profile
@@ -53,25 +53,54 @@ router.put('/profile', authenticateToken, async (req, res) => {
     const profile = await Profile.findOne({ user: req.user.userId });
     if (!profile) return res.status(404).json({ error: 'Profile not found.' });
 
-    const updateData = req.body;
+    const updateData = { ...req.body };
     
     // Protect role/user linking
     delete updateData.user;
     delete updateData._id;
 
+    // Handle nested emergencyContact if passed as flat fields
+    if (updateData.emergencyContactName !== undefined || updateData.emergencyContactPhone !== undefined || updateData.emergencyContactRelation !== undefined) {
+      updateData.emergencyContact = {
+        name: updateData.emergencyContactName ?? profile.emergencyContact?.name ?? '',
+        phone: updateData.emergencyContactPhone ?? profile.emergencyContact?.phone ?? '',
+        relation: updateData.emergencyContactRelation ?? profile.emergencyContact?.relation ?? ''
+      };
+      delete updateData.emergencyContactName;
+      delete updateData.emergencyContactPhone;
+      delete updateData.emergencyContactRelation;
+    }
+
+    // Handle nested socials if passed as flat fields
+    if (updateData.instagram !== undefined || updateData.facebook !== undefined || updateData.youtube !== undefined) {
+      updateData.socials = {
+        instagram: updateData.instagram ?? profile.socials?.instagram ?? '',
+        facebook: updateData.facebook ?? profile.socials?.facebook ?? '',
+        youtube: updateData.youtube ?? profile.socials?.youtube ?? ''
+      };
+      delete updateData.instagram;
+      delete updateData.facebook;
+      delete updateData.youtube;
+    }
+
+    // If DOB provided, calculate age
+    if (updateData.dob) {
+      const birthDate = new Date(updateData.dob);
+      if (!isNaN(birthDate.getTime())) {
+        const difference = Date.now() - birthDate.getTime();
+        updateData.age = Math.floor(difference / (1000 * 60 * 60 * 24 * 365.25));
+      }
+    }
+
     // Direct object assign
     Object.assign(profile, updateData);
 
-    // If age wasn't supplied but DOB was, update age
-    if (updateData.dob) {
-      const birthDate = new Date(updateData.dob);
-      const difference = Date.now() - birthDate.getTime();
-      profile.age = Math.floor(difference / (1000 * 60 * 60 * 24 * 365.25));
-    }
-
     await profile.save();
-    res.json({ message: 'Profile updated successfully!', profile });
+    const updatedProfile = await Profile.findById(profile._id).populate('user', 'email role');
+
+    res.json({ message: 'Profile updated successfully!', profile: updatedProfile });
   } catch (err) {
+    console.error('Profile update error:', err);
     res.status(500).json({ error: err.message });
   }
 });
@@ -91,24 +120,105 @@ router.get('/leaderboard', async (req, res) => {
   }
 });
 
+// HELPER TO SAFELY MATCH PLAYER IDS ACROSS POPULATED AND UNPOPULATED OBJECTS
+const isPlayerMatch = (applicantPlayer, targetUserId) => {
+  if (!applicantPlayer || !targetUserId) return false;
+  const targetStr = targetUserId.toString();
+
+  if (typeof applicantPlayer === 'string') return applicantPlayer === targetStr;
+  if (applicantPlayer._id) return applicantPlayer._id.toString() === targetStr;
+  if (applicantPlayer.id) return applicantPlayer.id.toString() === targetStr;
+  if (typeof applicantPlayer.toString === 'function') return applicantPlayer.toString() === targetStr;
+  return String(applicantPlayer) === targetStr;
+};
+
 // 5. PLAYER DASHBOARD DATA
 router.get('/player/dashboard', authenticateToken, async (req, res) => {
   try {
-    const userId = req.user.userId;
+    const userId = req.user._id || req.user.id || req.user.userId;
     const profile = await Profile.findOne({ user: userId });
     const videos = await Video.find({ user: userId }).sort({ createdAt: -1 });
     const analyses = await Analysis.find({ user: userId }).sort({ createdAt: -1 });
-    const trials = await Trial.find({ player: userId }).populate('scout', 'email').sort({ date: 1 });
+
+    const pAge = profile?.ageCategory || 'Senior';
+    const pPos = profile?.preferredPosition || 'ST';
+
+    // Fetch public trials, private invitations, and applied trials
+    const allTrials = await Trial.find({
+      $or: [
+        { privacy: 'public' },
+        { privacy: 'private', invitedPlayers: userId },
+        { 'applicants.player': userId }
+      ]
+    }).populate('scout', 'email').sort({ createdAt: -1 });
+
+    const activeTrials = allTrials.filter(t => {
+      const myApp = (t.applicants || []).find(a => isPlayerMatch(a.player, userId));
+
+      // Remove rejected/declined trials completely
+      if (myApp && myApp.status === 'rejected') {
+        return false;
+      }
+
+      // Keep accepted or pending registered trials
+      if (myApp) {
+        return true;
+      }
+
+      // Keep new unresponded private invitations or matching public trials
+      if (t.privacy === 'private') return true;
+      const matchesAge = (!t.ageCategory || t.ageCategory.length === 0 || t.ageCategory.includes(pAge));
+      const matchesPos = (!t.positionsTarget || t.positionsTarget.length === 0 || t.positionsTarget.includes(pPos));
+      return matchesAge && matchesPos;
+    });
+
+    // Fetch scout profiles for clean scoutName resolution
+    const scoutUserIds = Array.from(new Set(activeTrials.map(t => {
+      if (!t.scout) return null;
+      return t.scout._id ? t.scout._id.toString() : t.scout.toString();
+    }).filter(Boolean)));
+
+    const scoutProfiles = await Profile.find({ user: { $in: scoutUserIds } }).populate('user', 'email');
+    const scoutProfileMap = {};
+    scoutProfiles.forEach(sp => {
+      const uId = sp.user?._id?.toString() || sp.user?.toString();
+      if (uId) scoutProfileMap[uId] = sp;
+    });
+
+    // Format trials with player's application status & scout name
+    const formattedTrials = activeTrials.map(t => {
+      const tObj = typeof t.toObject === 'function' ? t.toObject() : t;
+      const myApp = (tObj.applicants || []).find(a => isPlayerMatch(a.player, userId));
+      tObj.isRegistered = !!myApp;
+      tObj.myStatus = myApp ? myApp.status : null;
+
+      const sId = t.scout?._id?.toString() || t.scout?.toString();
+      const sProfile = scoutProfileMap[sId];
+      
+      let resolvedName = sProfile?.name;
+      if (!resolvedName && t.scout?.email) {
+        resolvedName = t.scout.email.split('@')[0];
+      }
+      if (!resolvedName && sProfile?.user?.email) {
+        resolvedName = sProfile.user.email.split('@')[0];
+      }
+
+      tObj.scoutName = resolvedName || 'Scout Organizer';
+      tObj.scoutOrganization = sProfile?.organization || sProfile?.clubRepresenting || '';
+      return tObj;
+    });
+
     const tournaments = await Tournament.find({ status: 'upcoming' }).limit(5);
 
     res.json({
       profile,
       videos,
       analyses,
-      trials,
+      trials: formattedTrials,
       tournaments
     });
   } catch (err) {
+    console.error('Error fetching player dashboard:', err);
     res.status(500).json({ error: err.message });
   }
 });
@@ -180,25 +290,37 @@ router.post('/scout/search', authenticateToken, async (req, res) => {
 router.post('/scout/save', authenticateToken, async (req, res) => {
   try {
     const { playerId } = req.body;
-    const scoutProfile = await Profile.findOne({ user: req.user.userId });
+    const scoutUserId = req.user._id || req.user.id || req.user.userId;
+    const scoutProfile = await Profile.findOne({ user: scoutUserId });
     if (!scoutProfile) return res.status(404).json({ error: 'Scout profile not found.' });
 
     if (!scoutProfile.savedPlayers) {
       scoutProfile.savedPlayers = [];
     }
 
-    const idx = scoutProfile.savedPlayers.indexOf(playerId);
+    const targetIdStr = (typeof playerId === 'object' && playerId) ? (playerId._id || playerId.id) : String(playerId);
+
+    let playerUserId = targetIdStr;
+    const foundProfile = await Profile.findOne({ $or: [{ _id: targetIdStr }, { user: targetIdStr }] });
+    if (foundProfile && foundProfile.user) {
+      playerUserId = foundProfile.user.toString();
+    }
+
+    const existingStrList = scoutProfile.savedPlayers.map(id => id.toString());
+    const idx = existingStrList.indexOf(playerUserId);
+
     let saved = false;
     if (idx === -1) {
-      scoutProfile.savedPlayers.push(playerId);
+      scoutProfile.savedPlayers.push(playerUserId);
       saved = true;
     } else {
       scoutProfile.savedPlayers.splice(idx, 1);
     }
 
     await scoutProfile.save();
-    res.json({ message: saved ? 'Player saved!' : 'Player unsaved!', saved });
+    res.json({ message: saved ? 'Player prospect saved!' : 'Player prospect removed from saved list.', saved, savedPlayers: scoutProfile.savedPlayers });
   } catch (err) {
+    console.error('Error toggling saved player:', err);
     res.status(500).json({ error: err.message });
   }
 });
@@ -240,26 +362,21 @@ router.post('/scout/trial', authenticateToken, async (req, res) => {
 // 9. SCOUT GET TRIALS AND SAVED PLAYERS
 router.get('/scout/dashboard', authenticateToken, async (req, res) => {
   try {
-    const scoutProfile = await Profile.findOne({ user: req.user.userId });
+    const scoutUserId = req.user._id || req.user.id || req.user.userId;
+    const scoutProfile = await Profile.findOne({ user: scoutUserId });
     if (!scoutProfile) return res.status(404).json({ error: 'Scout profile not found.' });
 
-    const trials = await Trial.find({ scout: req.user.userId })
-      .populate({
-        path: 'player',
-        select: 'email',
-        populate: { path: 'profile' } // Wait, let's fetch profile separately if needed
-      })
+    const trials = await Trial.find({ scout: scoutUserId })
+      .populate('invitedPlayers', 'email')
+      .populate('applicants.player', 'email')
       .sort({ date: 1 });
 
-    // Populate trials with player profile details manually to avoid deep Mongoose populate issues
-    const populatedTrials = [];
-    for (let t of trials) {
-      const p = await Profile.findOne({ user: t.player._id });
-      populatedTrials.push({
-        ...t.toObject(),
-        playerProfile: p
-      });
-    }
+    let acceptedCount = 0;
+    trials.forEach(t => {
+      if (t.applicants) {
+        acceptedCount += t.applicants.filter(a => a.status === 'accepted').length;
+      }
+    });
 
     const savedPlayerProfiles = await Profile.find({
       user: { $in: scoutProfile.savedPlayers || [] }
@@ -267,10 +384,12 @@ router.get('/scout/dashboard', authenticateToken, async (req, res) => {
 
     res.json({
       profile: scoutProfile,
-      trials: populatedTrials,
-      savedPlayers: savedPlayerProfiles
+      trials,
+      savedPlayers: savedPlayerProfiles,
+      acceptedCount
     });
   } catch (err) {
+    console.error('Error loading scout dashboard:', err);
     res.status(500).json({ error: err.message });
   }
 });

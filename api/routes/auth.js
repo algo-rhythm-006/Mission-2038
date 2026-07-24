@@ -64,6 +64,7 @@ router.post('/register', async (req, res) => {
       phone,
       dob,
       age: calculatedAge,
+      ageCategory: req.body.ageCategory || 'Senior',
       gender,
       state,
       district,
@@ -79,8 +80,7 @@ router.post('/register', async (req, res) => {
       profileData.height = Number(roleFields.height) || 0;
       profileData.weight = Number(roleFields.weight) || 0;
       profileData.dominantFoot = roleFields.dominantFoot || 'right';
-      profileData.preferredPosition = roleFields.preferredPosition || '';
-      profileData.secondaryPosition = roleFields.secondaryPosition || '';
+      profileData.preferredPosition = roleFields.preferredPosition || 'ST';
       profileData.currentClub = roleFields.currentClub || '';
       profileData.previousClub = roleFields.previousClub || '';
       profileData.matchesPlayed = Number(roleFields.matchesPlayed) || 0;

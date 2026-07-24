@@ -22,6 +22,7 @@ const ProfileSchema = new Schema({
   phone: { type: String },
   dob: { type: Date },
   age: { type: Number },
+  ageCategory: { type: String, enum: ['U-13', 'U-15', 'U-17', 'U-19', 'U-21', 'U-23', 'Senior'], default: 'Senior' },
   gender: { type: String, enum: ['male', 'female', 'other'] },
   profilePhoto: { type: String, default: '' },
   bio: { type: String, default: '' },
@@ -39,8 +40,7 @@ const ProfileSchema = new Schema({
   height: { type: Number }, // in cm
   weight: { type: Number }, // in kg
   dominantFoot: { type: String, enum: ['right', 'left', 'both'] },
-  preferredPosition: { type: String },
-  secondaryPosition: { type: String },
+  preferredPosition: { type: String, enum: ['ST', 'LW', 'RW', 'CAM', 'CM', 'CDM', 'LB', 'RB', 'CB', 'GK', 'WB'], default: 'ST' },
   currentClub: { type: String, default: '' },
   previousClub: { type: String, default: '' },
   matchesPlayed: { type: Number, default: 0 },
@@ -95,7 +95,7 @@ const ProfileSchema = new Schema({
   // --- COACH SPECIFIC FIELDS ---
   teamsManaged: [{ type: String }],
   specializations: [{ type: String }]
-}, { timestamps: true });
+}, { timestamps: true, strict: false });
 
 // 3. VIDEO SCHEMA
 const VideoSchema = new Schema({
@@ -197,16 +197,26 @@ const ApplicationSchema = new Schema({
   paymentStatus: { type: String, enum: ['pending', 'paid'], default: 'pending' }
 }, { timestamps: true });
 
-// 13. TRIAL SCHEMA (Scout invites player for trials)
+// 13. TRIAL SCHEMA (Scout schedules public or private trials)
 const TrialSchema = new Schema({
   scout: { type: Schema.Types.ObjectId, ref: 'User', required: true },
-  player: { type: Schema.Types.ObjectId, ref: 'User', required: true },
+  title: { type: String, required: true },
+  description: { type: String, default: '' },
+  ageCategory: [{ type: String }],
+  positionsTarget: [{ type: String }],
   date: { type: Date, required: true },
   time: { type: String, required: true },
   location: { type: String, required: true },
+  privacy: { type: String, enum: ['public', 'private'], default: 'public' },
+  invitedPlayers: [{ type: Schema.Types.ObjectId, ref: 'User' }],
+  applicants: [{
+    player: { type: Schema.Types.ObjectId, ref: 'User' },
+    status: { type: String, enum: ['pending', 'accepted', 'rejected', 'attended'], default: 'pending' },
+    appliedAt: { type: Date, default: Date.now }
+  }],
   status: { type: String, enum: ['scheduled', 'completed', 'cancelled'], default: 'scheduled' },
   notes: { type: String, default: '' }
-}, { timestamps: true });
+}, { timestamps: true, strict: false });
 
 // Registering models
 const User = mongoose.models.User || mongoose.model('User', UserSchema);

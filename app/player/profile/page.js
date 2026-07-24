@@ -3,7 +3,8 @@
 import { useState, useEffect } from "react";
 import { api } from "@/lib/api";
 import DashboardLayout from "@/components/DashboardLayout";
-import { Shield, Sparkles, TrendingUp, Calendar, MapPin, Award } from "lucide-react";
+import { Shield, Sparkles, TrendingUp, Calendar, MapPin, Award, Trophy, Video, ShieldAlert } from "lucide-react";
+import { FaInstagram, FaFacebook, FaYoutube } from "react-icons/fa";
 
 export default function PlayerProfile() {
   const [profile, setProfile] = useState(null);
@@ -44,11 +45,11 @@ export default function PlayerProfile() {
     );
   }
 
-  const { skills = {}, careerTimeline = [] } = profile;
+  const { skills = {}, careerTimeline = [], socials = {}, emergencyContact = {} } = profile;
 
   return (
     <DashboardLayout>
-      <div className="max-w-6xl mx-auto space-y-10">
+      <div className="max-w-6xl mx-auto space-y-10 pb-12">
         <div className="flex flex-col md:flex-row gap-10 items-stretch">
           {/* INTERACTIVE GOLD FUT CARD */}
           <div className="w-full md:w-80 flex-shrink-0 flex items-center justify-center">
@@ -119,14 +120,16 @@ export default function PlayerProfile() {
 
               <div className="grid grid-cols-2 md:grid-cols-3 gap-6">
                 {[
-                  { label: "Age", value: profile.age ? `${profile.age} Years` : "N/A" },
+                  { label: "Age / Category", value: profile.age ? `${profile.age} Yrs (${profile.ageCategory || "Senior"})` : (profile.ageCategory || "Senior") },
                   { label: "Dominant Foot", value: profile.dominantFoot || "Right" },
                   { label: "Height", value: profile.height ? `${profile.height} cm` : "N/A" },
                   { label: "Weight", value: profile.weight ? `${profile.weight} kg` : "N/A" },
-                  { label: "Preferred Position", value: profile.preferredPosition || "CF" },
-                  { label: "Secondary Position", value: profile.secondaryPosition || "LW" },
-                  { label: "State Association", value: profile.state || "Delhi" },
-                  { label: "District Association", value: profile.district || "New Delhi" },
+                  { label: "Preferred Position", value: profile.preferredPosition || "ST" },
+                  { label: "Current Club", value: profile.currentClub || "Unattached" },
+                  { label: "Previous Club", value: profile.previousClub || "N/A" },
+                  { label: "Preferred League", value: profile.preferredLeague || "N/A" },
+                  { label: "State Association", value: profile.state || "N/A" },
+                  { label: "District / City", value: profile.district || profile.city || "N/A" },
                   { label: "Phone Contact", value: profile.phone || "Hidden" },
                 ].map((item) => (
                   <div key={item.label} className="bg-zinc-950/40 p-4 rounded-xl border border-zinc-900">
@@ -146,12 +149,94 @@ export default function PlayerProfile() {
 
             <div className="mt-8 border-t border-zinc-800 pt-6 flex justify-between items-center text-xs text-zinc-500">
               <div className="flex items-center gap-1">
-                <MapPin className="w-4 h-4" /> {profile.city}, {profile.state}
+                <MapPin className="w-4 h-4" /> {profile.city || profile.district || 'City'}, {profile.state || 'State'}
               </div>
               <div className="flex items-center gap-1">
                 <TrendingUp className="w-4 h-4 text-yellow-400" /> Potential Rating: {skills.potential || 70}
               </div>
             </div>
+          </div>
+        </div>
+
+        {/* CAREER STATS & MEDIA ROW */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+          {/* STATS CARD */}
+          <div className="bg-zinc-900/30 border border-zinc-800 rounded-3xl p-6 md:p-8">
+            <h3 className="text-md font-bold uppercase tracking-widest text-white flex items-center gap-2 mb-6 border-b border-zinc-800 pb-4">
+              <Trophy className="text-yellow-400 w-5 h-5" /> Season Statistics
+            </h3>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="bg-zinc-950/60 p-4 rounded-xl border border-zinc-800 text-center">
+                <span className="block text-2xl font-black text-white">{profile.matchesPlayed ?? 0}</span>
+                <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Matches Played</span>
+              </div>
+              <div className="bg-zinc-950/60 p-4 rounded-xl border border-zinc-800 text-center">
+                <span className="block text-2xl font-black text-yellow-400">{profile.goals ?? 0}</span>
+                <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Goals Scored</span>
+              </div>
+              <div className="bg-zinc-950/60 p-4 rounded-xl border border-zinc-800 text-center">
+                <span className="block text-2xl font-black text-amber-400">{profile.assists ?? 0}</span>
+                <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Assists</span>
+              </div>
+              <div className="bg-zinc-950/60 p-4 rounded-xl border border-zinc-800 text-center">
+                <span className="block text-2xl font-black text-emerald-400">{profile.cleanSheets ?? 0}</span>
+                <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Clean Sheets</span>
+              </div>
+            </div>
+          </div>
+
+          {/* MEDIA & SOCIALS CARD */}
+          <div className="bg-zinc-900/30 border border-zinc-800 rounded-3xl p-6 md:p-8 flex flex-col justify-between">
+            <div>
+              <h3 className="text-md font-bold uppercase tracking-widest text-white flex items-center gap-2 mb-6 border-b border-zinc-800 pb-4">
+                <Video className="text-yellow-400 w-5 h-5" /> Highlights & Social Links
+              </h3>
+
+              {profile.highlightVideo ? (
+                <div className="mb-6">
+                  <span className="block text-[10px] font-bold text-zinc-500 uppercase tracking-widest mb-2">Featured Highlight reel</span>
+                  <a href={profile.highlightVideo} target="_blank" rel="noopener noreferrer" 
+                    className="inline-flex items-center gap-2 bg-yellow-400/10 text-yellow-400 border border-yellow-400/30 px-4 py-2 rounded-xl text-xs font-bold hover:bg-yellow-400/20 transition-all">
+                    <Video className="w-4 h-4" /> Watch Highlight Video
+                  </a>
+                </div>
+              ) : (
+                <p className="text-xs text-zinc-500 mb-6">No highlight video link added yet.</p>
+              )}
+
+              <div className="space-y-3">
+                <span className="block text-[10px] font-bold text-zinc-500 uppercase tracking-widest mb-1">Social Profiles</span>
+                <div className="flex flex-wrap gap-3">
+                  {socials.instagram && (
+                    <a href={socials.instagram} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 bg-zinc-950 p-3 rounded-xl border border-zinc-800 text-xs text-zinc-300 hover:text-white">
+                      <FaInstagram className="w-4 h-4 text-pink-500" /> Instagram
+                    </a>
+                  )}
+                  {socials.facebook && (
+                    <a href={socials.facebook} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 bg-zinc-950 p-3 rounded-xl border border-zinc-800 text-xs text-zinc-300 hover:text-white">
+                      <FaFacebook className="w-4 h-4 text-blue-500" /> Facebook
+                    </a>
+                  )}
+                  {socials.youtube && (
+                    <a href={socials.youtube} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 bg-zinc-950 p-3 rounded-xl border border-zinc-800 text-xs text-zinc-300 hover:text-white">
+                      <FaYoutube className="w-4 h-4 text-red-500" /> YouTube Channel
+                    </a>
+                  )}
+                  {!socials.instagram && !socials.facebook && !socials.youtube && (
+                    <span className="text-xs text-zinc-600">No social channels connected.</span>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {emergencyContact && emergencyContact.name && (
+              <div className="mt-6 border-t border-zinc-800 pt-4 flex items-center justify-between text-xs text-zinc-400">
+                <span className="flex items-center gap-1.5 font-bold uppercase text-[10px] text-zinc-500">
+                  <ShieldAlert className="w-4 h-4 text-yellow-400" /> Emergency Contact:
+                </span>
+                <span>{emergencyContact.name} ({emergencyContact.relation}) - {emergencyContact.phone}</span>
+              </div>
+            )}
           </div>
         </div>
 
