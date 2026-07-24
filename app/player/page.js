@@ -1,0 +1,257 @@
+"use client";
+
+import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
+import { api } from "@/lib/api";
+import DashboardLayout from "@/components/DashboardLayout";
+import { Trophy, Video, Calendar, ArrowRight, Activity, Users, Star } from "lucide-react";
+
+export default function PlayerDashboard() {
+  const router = useRouter();
+  const [data, setData] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  useEffect(() => {
+    // Fetch player dashboard metrics
+    api.get("/dashboard/player/dashboard")
+      .then(res => {
+        setData(res);
+        setLoading(false);
+      })
+      .catch(err => {
+        setError(err.message || "Failed to load player stats.");
+        setLoading(false);
+      });
+  }, []);
+
+  if (loading) {
+    return (
+      <DashboardLayout>
+        <div className="h-96 flex flex-col items-center justify-center space-y-4">
+          <div className="w-10 h-10 border-4 border-yellow-400 border-t-transparent rounded-full animate-spin"></div>
+          <p className="text-zinc-500 text-sm tracking-widest font-bold uppercase">Loading Player Stats...</p>
+        </div>
+      </DashboardLayout>
+    );
+  }
+
+  if (error) {
+    return (
+      <DashboardLayout>
+        <div className="p-8 bg-zinc-900 border border-zinc-800 rounded-xl text-center">
+          <h3 className="text-red-500 font-bold mb-2">Error Loading Dashboard</h3>
+          <p className="text-zinc-400">{error}</p>
+        </div>
+      </DashboardLayout>
+    );
+  }
+
+  const { profile, videos, analyses, trials, tournaments } = data;
+  const recentAnalysis = analyses && analyses[0];
+
+  return (
+    <DashboardLayout>
+      <div className="space-y-8 max-w-7xl mx-auto">
+        {/* BANNER SECTION */}
+        <div className="relative rounded-3xl overflow-hidden bg-gradient-to-r from-zinc-900 via-zinc-900 to-amber-950/40 border border-zinc-800 p-8 md:p-10 flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
+          <div className="absolute top-0 right-0 w-80 h-full bg-[radial-gradient(circle_at_right_bottom,rgba(250,204,21,0.08),transparent_60%)] pointer-events-none" />
+          <div>
+            <div className="flex items-center space-x-3 mb-3">
+              <span className="bg-yellow-400/10 text-yellow-400 text-xs font-black uppercase tracking-widest px-3 py-1 rounded-full border border-yellow-400/20">
+                Active Pitch
+              </span>
+              {profile?.verifiedBadge && (
+                <span className="bg-blue-500/10 text-blue-400 text-xs font-bold uppercase px-3 py-1 rounded-full border border-blue-500/20">
+                  Verified Scout Badge
+                </span>
+              )}
+            </div>
+            <h1 className="text-4xl md:text-5xl font-black tracking-tight text-white leading-none uppercase">
+              Welcome back, <span className="text-yellow-400">{profile?.name}</span>
+            </h1>
+            <p className="text-zinc-400 mt-3 max-w-xl text-sm leading-relaxed">
+              Analyze your matches, review custom AI-coaching drills, and stay ready to showcase your skills to scouts across the country.
+            </p>
+          </div>
+          <button 
+            onClick={() => router.push("/player/coach")} 
+            className="relative overflow-hidden group bg-gradient-to-r from-yellow-400 to-amber-500 text-black font-black uppercase tracking-widest px-6 py-4 rounded-full shadow-[0_0_30px_rgba(250,204,21,0.3)] transition-all hover:scale-105"
+          >
+            Start AI Training →
+          </button>
+        </div>
+
+        {/* QUICK STATS GRID */}
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-6">
+          {[
+            { label: "Matches", value: profile?.matchesPlayed || 0, color: "text-zinc-300" },
+            { label: "Goals", value: profile?.goals || 0, color: "text-yellow-400" },
+            { label: "Assists", value: profile?.assists || 0, color: "text-amber-400" },
+            { label: "Clean Sheets", value: profile?.cleanSheets || 0, color: "text-zinc-400" },
+          ].map((stat) => (
+            <div key={stat.label} className="bg-zinc-900/40 border border-zinc-800/80 rounded-2xl p-6 backdrop-blur-xl relative overflow-hidden">
+              <span className="block text-[11px] uppercase tracking-widest text-zinc-500 font-bold mb-2">{stat.label}</span>
+              <span className={`text-4xl md:text-5xl font-black ${stat.color}`}>{stat.value}</span>
+            </div>
+          ))}
+        </div>
+
+        {/* DETAILS SECTION GRID */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          {/* LEFT: AI ANALYSIS HIGHLIGHT */}
+          <div className="lg:col-span-2 space-y-8">
+            <div className="bg-zinc-900/30 border border-zinc-800 rounded-3xl p-6 relative overflow-hidden">
+              <div className="flex justify-between items-center mb-6 border-b border-zinc-800 pb-4">
+                <div>
+                  <h3 className="text-md font-bold uppercase tracking-widest text-white flex items-center gap-2">
+                    <Activity className="text-yellow-400 w-5 h-5" /> Recent AI Coaching Report
+                  </h3>
+                  <span className="text-[10px] text-zinc-500">FastAPI MediaPipe & YOLO Analysis Engine</span>
+                </div>
+                <button onClick={() => router.push("/player/analytics")} className="text-yellow-400 text-xs uppercase font-bold tracking-widest hover:text-white flex items-center gap-1 transition-colors">
+                  View Analytics <ArrowRight className="w-4 h-4" />
+                </button>
+              </div>
+
+              {recentAnalysis ? (
+                <div className="space-y-4">
+                  <div className="flex justify-between items-center bg-zinc-950 p-4 rounded-xl border border-zinc-800">
+                    <div>
+                      <span className="text-[10px] uppercase font-bold tracking-widest text-zinc-500">Drill Mode</span>
+                      <h4 className="text-white font-black uppercase text-lg">{recentAnalysis.drillType} Coaching</h4>
+                    </div>
+                    <div className="text-right">
+                      <span className="text-[10px] uppercase font-bold tracking-widest text-zinc-500">Analysis Date</span>
+                      <h4 className="text-zinc-300 font-semibold text-sm">{new Date(recentAnalysis.createdAt).toLocaleDateString()}</h4>
+                    </div>
+                  </div>
+
+                  <div className="bg-zinc-900/60 p-5 rounded-2xl border border-zinc-800/80">
+                    <h5 className="text-xs uppercase font-bold tracking-widest text-yellow-400/90 mb-3">AI Verdict & Action Plan</h5>
+                    <p className="text-zinc-300 text-sm leading-relaxed whitespace-pre-line font-medium">
+                      {recentAnalysis.report?.substring(0, 320)}...
+                    </p>
+                  </div>
+
+                  <button 
+                    onClick={() => router.push("/player/coach")} 
+                    className="w-full bg-zinc-900 hover:bg-zinc-800 text-zinc-300 hover:text-white border border-zinc-800 rounded-xl py-3 text-xs uppercase font-bold tracking-widest transition-all"
+                  >
+                    Open AI Training Terminal
+                  </button>
+                </div>
+              ) : (
+                <div className="text-center py-12 space-y-4">
+                  <Video className="w-12 h-12 text-zinc-700 mx-auto" />
+                  <div>
+                    <h4 className="text-white font-bold">No Training Videos Analyzed Yet</h4>
+                    <p className="text-zinc-500 text-xs mt-1">Upload a shooting, dribbling, or keeper video to get AI ratings feedback.</p>
+                  </div>
+                  <button onClick={() => router.push("/player/upload")} className="bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 text-yellow-400 font-bold uppercase tracking-wider text-xs px-5 py-2.5 rounded-full transition-all">
+                    Upload Video
+                  </button>
+                </div>
+              )}
+            </div>
+
+            {/* UPCOMING TRIALS CARD */}
+            <div className="bg-zinc-900/30 border border-zinc-800 rounded-3xl p-6">
+              <h3 className="text-md font-bold uppercase tracking-widest text-white flex items-center gap-2 mb-6 border-b border-zinc-800 pb-4">
+                <Calendar className="text-yellow-400 w-5 h-5" /> Invites & Trial Schedules
+              </h3>
+
+              {trials && trials.length > 0 ? (
+                <div className="space-y-4">
+                  {trials.map((trial) => (
+                    <div key={trial._id} className="bg-zinc-950/60 p-5 rounded-2xl border border-zinc-800 flex justify-between items-center gap-4">
+                      <div className="space-y-1">
+                        <span className="text-[10px] uppercase font-bold tracking-widest text-yellow-400">Scout Trial</span>
+                        <h4 className="text-white font-bold text-md">Location: {trial.location}</h4>
+                        <p className="text-xs text-zinc-400">Scout contact: {trial.scout?.email || "Verification Pending"}</p>
+                        {trial.notes && <p className="text-xs text-zinc-500 italic">Notes: {trial.notes}</p>}
+                      </div>
+                      <div className="text-right shrink-0">
+                        <div className="bg-zinc-900 px-4 py-2 rounded-lg border border-zinc-800 text-center">
+                          <span className="block text-xs font-black text-white">{new Date(trial.date).toLocaleDateString()}</span>
+                          <span className="text-[10px] text-zinc-500 font-bold uppercase">{trial.time}</span>
+                        </div>
+                        <span className="inline-block mt-2 text-[10px] uppercase font-bold text-green-400 tracking-wider">
+                          {trial.status}
+                        </span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center py-8 text-zinc-500 text-xs">
+                  No upcoming trials scheduled. Build up your AI score to catch scout attention!
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* RIGHT: OVERALL PROFILE CARD SUMMARY */}
+          <div className="space-y-8">
+            <div className="bg-gradient-to-b from-zinc-900 to-zinc-950 border border-zinc-800 rounded-3xl p-6 text-center relative overflow-hidden shadow-2xl">
+              <div className="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-yellow-400 to-amber-500" />
+              
+              <div className="relative w-28 h-28 rounded-full overflow-hidden border-2 border-yellow-400/40 mx-auto mt-4 mb-4 bg-zinc-850">
+                <img 
+                  src={profile?.profilePhoto || "https://images.unsplash.com/photo-1508098682722-e99c43a406b2?w=150"} 
+                  alt="Player Profile" 
+                  className="w-full h-full object-cover" 
+                />
+              </div>
+
+              <h3 className="text-xl font-black uppercase text-white">{profile?.name}</h3>
+              <p className="text-zinc-400 text-xs mt-1 uppercase font-bold tracking-wider">{profile?.preferredPosition} • {profile?.currentClub || "Free Agent"}</p>
+
+              {/* Skill stats radar ratings mockup */}
+              <div className="mt-8 grid grid-cols-2 gap-4">
+                {[
+                  { label: "Overall", val: profile?.skills?.aiScore || 60 },
+                  { label: "Speed", val: profile?.skills?.speed || 60 },
+                  { label: "Passing", val: profile?.skills?.passing || 60 },
+                  { label: "Dribbling", val: profile?.skills?.dribbling || 60 },
+                  { label: "Finishing", val: profile?.skills?.finishing || 60 },
+                  { label: "Potential", val: profile?.skills?.potential || 70 },
+                ].map((s) => (
+                  <div key={s.label} className="bg-zinc-950/80 p-3 rounded-xl border border-zinc-900 text-left">
+                    <span className="block text-[9px] uppercase tracking-widest text-zinc-500 font-bold">{s.label}</span>
+                    <span className="text-lg font-black text-white">{s.val}</span>
+                  </div>
+                ))}
+              </div>
+
+              <button 
+                onClick={() => router.push("/player/profile")} 
+                className="w-full mt-6 bg-gradient-to-r from-yellow-400 to-amber-500 text-black font-black uppercase tracking-widest py-3.5 rounded-xl shadow-md text-xs hover:scale-[1.02] transition-all"
+              >
+                Inspect Player Card
+              </button>
+            </div>
+
+            {/* TOURNAMENT HIGHLIGHT */}
+            <div className="bg-zinc-900/30 border border-zinc-800 rounded-3xl p-6">
+              <h3 className="text-xs font-black uppercase tracking-widest text-zinc-500 mb-4">Nearby Active Leagues</h3>
+              <div className="space-y-4">
+                {tournaments && tournaments.slice(0, 2).map((t) => (
+                  <div key={t._id} className="p-4 rounded-xl bg-zinc-950/40 border border-zinc-800 flex justify-between items-center">
+                    <div>
+                      <h4 className="text-white font-bold text-xs">{t.name}</h4>
+                      <span className="text-[10px] text-zinc-500">{t.location}</span>
+                    </div>
+                    <button onClick={() => router.push("/player/tournaments")} className="p-2 bg-zinc-900 rounded-full hover:bg-yellow-400 hover:text-black border border-zinc-800 transition-all">
+                      <ArrowRight className="w-4 h-4" />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </DashboardLayout>
+  );
+}
