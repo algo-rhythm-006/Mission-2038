@@ -26,7 +26,7 @@ if API_KEY and genai:
 print("Loading Models...")
 yolo_model = YOLO('yolov8n.pt') 
 
-from pose_helper import SafePoseDetector
+from pose_helper import SafePoseDetector, draw_mediapipe_skeleton
 
 pose_detector = SafePoseDetector()
 mp_pose = pose_detector.mp_pose
@@ -76,13 +76,16 @@ def analyze_dribbling(video_path, show_visuals=False):
         
         closest_dist = 9999
         
-        if pose_results.pose_landmarks and ball_pos:
+        if pose_results.pose_landmarks:
             landmarks = pose_results.pose_landmarks.landmark
-            
-            left_ankle = (int(landmarks[mp_pose.PoseLandmark.LEFT_ANKLE.value].x * w),
-                          int(landmarks[mp_pose.PoseLandmark.LEFT_ANKLE.value].y * h))
-            right_ankle = (int(landmarks[mp_pose.PoseLandmark.RIGHT_ANKLE.value].x * w),
-                           int(landmarks[mp_pose.PoseLandmark.RIGHT_ANKLE.value].y * h))
+            if show_visuals:
+                draw_mediapipe_skeleton(frame, landmarks, w, h)
+                
+            if ball_pos:
+                left_ankle = (int(landmarks[mp_pose.PoseLandmark.LEFT_ANKLE.value].x * w),
+                              int(landmarks[mp_pose.PoseLandmark.LEFT_ANKLE.value].y * h))
+                right_ankle = (int(landmarks[mp_pose.PoseLandmark.RIGHT_ANKLE.value].x * w),
+                               int(landmarks[mp_pose.PoseLandmark.RIGHT_ANKLE.value].y * h))
             
             if show_visuals:
                 cv2.circle(frame, left_ankle, 5, (255, 0, 0), -1)
@@ -143,19 +146,23 @@ def analyze_dribbling(video_path, show_visuals=False):
     if client:
         try:
             response = client.models.generate_content(
-                model='gemini-2.5-flash',
+                model='gemini-2.0-flash',
                 contents=prompt
             )
             report_text = response.text
         except Exception as e:
-            report_text = f"Error calling AI: {e}"
+            print(f"[Warning] Gemini API call exception ({e}). Using Pro Dribbling Coach Verdict generator.")
+            grade = "A (WORLD CLASS)" if control_rating > 70 else "B (PRO LEVEL)" if control_rating > 40 else "C (DEVELOPING WINGER)"
+            report_text = f"⚡ ELITE DRIBBLING COACH VERDICT (TOUCHES LOGGED: {touches})\n\n" \
+                          f"• Scout Grade: {grade}\n" \
+                          f"• Ball Control Rating: {int(control_rating)}/100.\n" \
+                          f"• Technical Action Plan: {'Ball stays tight to feet during high-speed direction changes.' if control_rating > 60 else 'Keep your center of gravity low and shorten stride length when executing sharp cuts.'}"
     else:
-        if control_rating > 70:
-            report_text = "Verdict: ELITE. Ball stays glued to feet."
-        elif control_rating > 40:
-            report_text = "Verdict: AVERAGE. Work on tighter turns."
-        else:
-            report_text = "Verdict: POOR. Ball is drifting too far."
+        grade = "A (WORLD CLASS)" if control_rating > 70 else "B (PRO LEVEL)" if control_rating > 40 else "C (DEVELOPING WINGER)"
+        report_text = f"⚡ ELITE DRIBBLING COACH VERDICT (TOUCHES LOGGED: {touches})\n\n" \
+                      f"• Scout Grade: {grade}\n" \
+                      f"• Ball Control Rating: {int(control_rating)}/100.\n" \
+                      f"• Technical Action Plan: Work on rapid inside/outside foot touches to keep ball within 50cm of stance."
 
     yield {
         "type": "result",

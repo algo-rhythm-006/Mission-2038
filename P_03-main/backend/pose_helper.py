@@ -78,7 +78,36 @@ class SafePoseDetector:
         landmarks[24] = Landmark(x=0.55, y=0.5)
         landmarks[25] = Landmark(x=0.43 + t*0.05, y=0.7)
         landmarks[26] = Landmark(x=0.57 - t*0.05, y=0.7)
-        landmarks[27] = Landmark(x=0.42, y=0.9)
-        landmarks[28] = Landmark(x=0.58, y=0.9)
-
         return PoseResultsContainer(PoseLandmarksContainer(landmarks))
+
+POSE_CONNECTIONS = [
+    (11, 12), (11, 13), (13, 15), (12, 14), (14, 16), # Shoulders & Arms
+    (11, 23), (12, 24), (23, 24),                   # Torso & Hips
+    (23, 25), (25, 27), (24, 26), (26, 28),         # Legs, Knees & Ankles
+    (27, 29), (28, 30), (29, 31), (30, 32),         # Feet
+    (0, 1), (1, 2), (2, 3), (3, 7), (0, 4), (4, 5), (5, 6), (6, 8) # Head & Face
+]
+
+def draw_mediapipe_skeleton(frame, landmarks, w, h):
+    if not landmarks:
+        return
+
+    points = {}
+    for idx, lm in enumerate(landmarks):
+        px, py = int(lm.x * w), int(lm.y * h)
+        points[idx] = (px, py)
+
+    # 1. Draw Skeleton Lines (Cyan for upper body, Neon Green for lower body)
+    for p1_idx, p2_idx in POSE_CONNECTIONS:
+        if p1_idx in points and p2_idx in points:
+            pt1 = points[p1_idx]
+            pt2 = points[p2_idx]
+            color = (255, 255, 0) if p1_idx < 23 else (0, 255, 0)
+            cv2.line(frame, pt1, pt2, color, 3, cv2.LINE_AA)
+
+    # 2. Draw Key Joint Points (Gold dots with white outline)
+    for idx, pt in points.items():
+        if idx in [0, 11, 12, 13, 14, 15, 16, 23, 24, 25, 26, 27, 28]:
+            cv2.circle(frame, pt, 5, (0, 215, 255), -1, cv2.LINE_AA)
+            cv2.circle(frame, pt, 6, (255, 255, 255), 1, cv2.LINE_AA)
+
